@@ -1,0 +1,14 @@
+# Build output
+.build/
+OpenFish.app/
+Koifish.app/
+*.xcodeproj
+
+# The shipped app icon lives in the repo (Resources/AppIcon-1024.png + .icns).
+# scripts/gen_icon.swift only regenerates a placeholder if you're starting fresh.
+
+# Proprietary reference material — never redistribute. Kept locally, never committed.
+*.dmg
+
+# macOS
+.DS_Store
