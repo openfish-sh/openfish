@@ -64,6 +64,10 @@ enum AIProviderFactory {
             return AnthropicProvider()
         case .openai:
             return OpenAIProvider()
+        case .gemini:
+            // Gemini exposes an OpenAI-compatible API at a fixed address.
+            return OpenAIProvider(kind: .gemini,
+                                  baseURL: kind.fixedBaseURL ?? URL(string: "https://generativelanguage.googleapis.com/v1beta/openai")!)
         case .openAICompatible:
             return OpenAIProvider(kind: .openAICompatible,
                                   baseURL: baseURL ?? URL(string: "https://api.openai.com/v1")!)

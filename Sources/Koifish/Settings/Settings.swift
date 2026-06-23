@@ -5,8 +5,9 @@ import Combine
 enum ProviderKind: String, CaseIterable, Codable, Identifiable {
     case anthropic
     case openai
-    /// Any OpenAI-compatible endpoint (Groq, OpenRouter, Gemini compat, Ollama,
-    /// LM Studio, …) with a user-set base URL + model.
+    case gemini
+    /// Any OpenAI-compatible endpoint (Groq, OpenRouter, Ollama, LM Studio, …)
+    /// with a user-set base URL + model.
     case openAICompatible
 
     var id: String { rawValue }
@@ -15,6 +16,7 @@ enum ProviderKind: String, CaseIterable, Codable, Identifiable {
         switch self {
         case .anthropic: return "Anthropic (Claude)"
         case .openai: return "OpenAI (GPT)"
+        case .gemini: return "Google (Gemini)"
         case .openAICompatible: return "OpenAI-compatible"
         }
     }
@@ -24,6 +26,7 @@ enum ProviderKind: String, CaseIterable, Codable, Identifiable {
         switch self {
         case .anthropic: return "Claude"
         case .openai: return "OpenAI"
+        case .gemini: return "Gemini"
         case .openAICompatible: return "Custom"
         }
     }
@@ -33,6 +36,7 @@ enum ProviderKind: String, CaseIterable, Codable, Identifiable {
         switch self {
         case .anthropic: return "https://console.anthropic.com/settings/keys"
         case .openai: return "https://platform.openai.com/api-keys"
+        case .gemini: return "https://aistudio.google.com/apikey"
         case .openAICompatible: return ""
         }
     }
@@ -41,7 +45,17 @@ enum ProviderKind: String, CaseIterable, Codable, Identifiable {
         switch self {
         case .anthropic: return "sk-ant-…"
         case .openai: return "sk-…"
+        case .gemini: return "AIza…"
         case .openAICompatible: return "API key (optional for local models)"
+        }
+    }
+
+    /// Fixed base URL for providers that expose an OpenAI-compatible API at a known
+    /// address (Gemini). nil for providers with their own transport or a user URL.
+    var fixedBaseURL: URL? {
+        switch self {
+        case .gemini: return URL(string: "https://generativelanguage.googleapis.com/v1beta/openai")
+        default: return nil
         }
     }
 
@@ -96,6 +110,9 @@ final class Settings: ObservableObject {
     @Published var openAIModel: String {
         didSet { defaults.set(openAIModel, forKey: Keys.openAIModel) }
     }
+    @Published var geminiModel: String {
+        didSet { defaults.set(geminiModel, forKey: Keys.geminiModel) }
+    }
     /// Base URL for the OpenAI-compatible provider (Groq, OpenRouter, Ollama, …).
     @Published var customBaseURL: String {
         didSet { defaults.set(customBaseURL, forKey: Keys.customBaseURL) }
@@ -146,6 +163,7 @@ final class Settings: ObservableObject {
         provider = ProviderKind(rawValue: defaults.string(forKey: Keys.provider) ?? "") ?? .anthropic
         anthropicModel = defaults.string(forKey: Keys.anthropicModel) ?? AIModels.defaultAnthropic
         openAIModel = defaults.string(forKey: Keys.openAIModel) ?? AIModels.defaultOpenAI
+        geminiModel = defaults.string(forKey: Keys.geminiModel) ?? AIModels.defaultGemini
         customBaseURL = defaults.string(forKey: Keys.customBaseURL) ?? ""
         customModel = defaults.string(forKey: Keys.customModel) ?? ""
         insertMode = InsertMode(rawValue: defaults.string(forKey: Keys.insertMode) ?? "") ?? .direct
@@ -176,6 +194,7 @@ final class Settings: ObservableObject {
         switch provider {
         case .anthropic: return anthropicModel
         case .openai: return openAIModel
+        case .gemini: return geminiModel
         case .openAICompatible: return customModel
         }
     }
@@ -194,6 +213,7 @@ final class Settings: ObservableObject {
         static let provider = "provider"
         static let anthropicModel = "anthropicModel"
         static let openAIModel = "openAIModel"
+        static let geminiModel = "geminiModel"
         static let customBaseURL = "customBaseURL"
         static let customModel = "customModel"
         static let insertMode = "insertMode"
@@ -226,6 +246,16 @@ enum AIModels {
         "gpt-4o",
         "gpt-4o-mini",
         "gpt-4.1",
+    ]
+
+    // Gemini via its OpenAI-compatible endpoint. Flash is the cheap default;
+    // 2.5 models are available for higher quality.
+    static let defaultGemini = "gemini-2.0-flash"
+    static let summaryGemini = "gemini-2.0-flash"
+    static let geminiChoices = [
+        "gemini-2.0-flash",
+        "gemini-2.5-flash",
+        "gemini-2.5-pro",
     ]
 
     static let whisperModel = "whisper-1"

@@ -113,7 +113,7 @@ final class Coordinator {
                 return "Enter a model id in Settings (e.g. llama-3.3-70b-versatile)."
             }
             return nil  // key optional for local endpoints
-        case .anthropic, .openai:
+        case .anthropic, .openai, .gemini:
             return KeychainStore.hasKey(for: s.provider) ? nil : AIError.missingAPIKey(s.provider).localizedDescription
         }
     }

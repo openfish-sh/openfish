@@ -314,14 +314,26 @@ final class ProviderTests: XCTestCase {
     func testMetadata() {
         XCTAssertTrue(ProviderKind.anthropic.keysURL.contains("anthropic"))
         XCTAssertTrue(ProviderKind.openai.keysURL.contains("openai"))
-        XCTAssertEqual(ProviderKind.allCases.count, 3)
+        XCTAssertTrue(ProviderKind.gemini.keysURL.contains("google"))
+        XCTAssertEqual(ProviderKind.allCases.count, 4)
     }
 
     func testCompatibleProvider() {
         XCTAssertFalse(ProviderKind.openAICompatible.requiresKey)
         XCTAssertTrue(ProviderKind.anthropic.requiresKey)
         XCTAssertTrue(ProviderKind.openai.requiresKey)
+        XCTAssertTrue(ProviderKind.gemini.requiresKey)
         XCTAssertFalse(CompatiblePreset.all.isEmpty)
+    }
+
+    func testGeminiRoutesThroughOpenAICompatibleEndpoint() {
+        // Gemini has a fixed OpenAI-compatible base URL, and the factory tags the
+        // provider it builds as .gemini.
+        let base = ProviderKind.gemini.fixedBaseURL
+        XCTAssertNotNil(base)
+        XCTAssertTrue(base?.absoluteString.contains("generativelanguage.googleapis.com") == true)
+        XCTAssertEqual(AIProviderFactory.make(.gemini, baseURL: nil).kind, .gemini)
+        XCTAssertNil(ProviderKind.anthropic.fixedBaseURL)
     }
 
     func testPresetsAreValid() {
@@ -335,6 +347,7 @@ final class ProviderTests: XCTestCase {
     func testModelDefaultsAreSelectable() {
         XCTAssertTrue(AIModels.anthropicChoices.contains(AIModels.defaultAnthropic))
         XCTAssertTrue(AIModels.openAIChoices.contains(AIModels.defaultOpenAI))
+        XCTAssertTrue(AIModels.geminiChoices.contains(AIModels.defaultGemini))
     }
 
     func testFactoryMatchesKind() {

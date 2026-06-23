@@ -54,6 +54,7 @@ enum Personalizer {
         switch provider {
         case .anthropic: return AIModels.summaryAnthropic
         case .openai: return AIModels.summaryOpenAI
+        case .gemini: return AIModels.summaryGemini
         case .openAICompatible: return customModel  // no cheaper tier; reuse the chosen model
         }
     }

@@ -224,6 +224,10 @@ private struct ProviderConfigCard: View {
             Picker("Model", selection: $settings.openAIModel) {
                 ForEach(AIModels.openAIChoices, id: \.self) { Text($0).tag($0) }
             }
+        case .gemini:
+            Picker("Model", selection: $settings.geminiModel) {
+                ForEach(AIModels.geminiChoices, id: \.self) { Text($0).tag($0) }
+            }
         case .openAICompatible:
             TextField("model id", text: $settings.customModel)
                 .textFieldStyle(.roundedBorder)
