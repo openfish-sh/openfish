@@ -19,8 +19,15 @@ APP="OpenFish.app"
 APP_ID="sh.koifish.Koifish"
 
 echo "==> swift build ($CONFIG)"
-swift build -c "$CONFIG"
-BIN_PATH="$(swift build -c "$CONFIG" --show-bin-path)"
+# Release builds are universal (arm64 + x86_64) so the app runs on any Mac you
+# hand it to; debug stays host-only for fast iteration.
+if [[ "$CONFIG" == "release" ]]; then
+    swift build -c "$CONFIG" --arch arm64 --arch x86_64
+    BIN_PATH="$(swift build -c "$CONFIG" --arch arm64 --arch x86_64 --show-bin-path)"
+else
+    swift build -c "$CONFIG"
+    BIN_PATH="$(swift build -c "$CONFIG" --show-bin-path)"
+fi
 
 echo "==> Assembling $APP"
 rm -rf "$APP"
