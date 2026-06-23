@@ -23,6 +23,19 @@ struct StyleProfile: Codable {
     }
 }
 
+extension StyleProfile {
+    /// Tolerant decoding: a missing key falls back to its default instead of
+    /// throwing, so adding or removing a field in a future version still loads an
+    /// existing file (keeping the learned profile) rather than resetting it. Safe
+    /// because the file is written atomically — there's never a torn read.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.description = (try? c.decodeIfPresent(String.self, forKey: .description)) ?? ""
+        self.sampleCount = (try? c.decodeIfPresent(Int.self, forKey: .sampleCount)) ?? 0
+        self.updatedAtEpoch = try? c.decodeIfPresent(Double.self, forKey: .updatedAtEpoch)
+    }
+}
+
 /// One recorded interaction, appended to the JSONL log.
 struct Interaction: Codable {
     enum Disposition: String, Codable {
