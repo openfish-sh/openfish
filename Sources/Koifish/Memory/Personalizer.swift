@@ -65,22 +65,49 @@ enum Personalizer {
     }
 
     private static let systemPrompt = """
-    You analyze writing samples and produce a concise, second-person description of \
-    the author's writing style, for use by an assistant that drafts messages in their \
-    voice. Cover tone, formality, sentence length, punctuation/emoji habits, greetings \
-    and sign-offs, and any recurring phrasings. Be specific and actionable. Output only \
-    the description (4-8 short bullet points), no preamble.
+    You analyze how a person writes and produce a concise, second-person description of \
+    their style, for an assistant that drafts messages in their voice. You get two kinds \
+    of evidence:
+    1. Messages they sent as-is — their natural voice.
+    2. Cases where the assistant drafted something and they rewrote it before sending — \
+    the change from draft to sent is the strongest signal of what they actually want.
+
+    Cover tone, formality, sentence length, greetings and sign-offs, punctuation/emoji \
+    habits, and recurring phrasings. From the rewrites, call out what they consistently \
+    change — e.g. cuts the greeting, shortens, drops hedging, swaps formal words for \
+    plain ones. Be specific and actionable. Output only the description (4-8 short bullet \
+    points), no preamble.
     """
 
     private static func userPrompt(samples: [Interaction]) -> String {
-        // Prefer the final (possibly edited) text — that's what the user actually wanted.
-        let texts = samples
-            .map { $0.final.isEmpty ? $0.generated : $0.final }
-            .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        func clean(_ s: String) -> String { s.trimmingCharacters(in: .whitespacesAndNewlines) }
+        var sections: [String] = []
+
+        // Sent as-is: positive examples of the user's natural voice.
+        let asIs = samples
+            .filter { $0.disposition == .accepted }
+            .map { clean($0.final.isEmpty ? $0.generated : $0.final) }
+            .filter { !$0.isEmpty }
             .suffix(sampleWindow)
-            .enumerated()
-            .map { "Example \($0.offset + 1):\n\($0.element)" }
-            .joined(separator: "\n\n")
-        return "Here are messages the user has written or approved:\n\n\(texts)"
+        if !asIs.isEmpty {
+            let list = asIs.enumerated().map { "\($0.offset + 1). \($0.element)" }.joined(separator: "\n\n")
+            sections.append("Messages the person sent as-is:\n\n\(list)")
+        }
+
+        // Edited: the assistant's draft vs what the person actually sent. The change is
+        // the strongest signal of their preferences.
+        let edits = samples
+            .filter { $0.disposition == .edited }
+            .map { (draft: clean($0.generated), sent: clean($0.final)) }
+            .filter { !$0.draft.isEmpty && !$0.sent.isEmpty && $0.draft != $0.sent }
+            .suffix(sampleWindow)
+        if !edits.isEmpty {
+            let list = edits.enumerated().map {
+                "\($0.offset + 1). Draft: \($0.element.draft)\n   They sent: \($0.element.sent)"
+            }.joined(separator: "\n\n")
+            sections.append("Drafts the person rewrote before sending (learn what they change):\n\n\(list)")
+        }
+
+        return sections.isEmpty ? "(no samples)" : sections.joined(separator: "\n\n---\n\n")
     }
 }
