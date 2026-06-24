@@ -12,9 +12,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let onOpenProfile: () -> Void
     private let onManageProfiles: () -> Void
     private let onCheckForUpdates: () -> Void
+    private let onSupport: () -> Void
     private let onQuit: () -> Void
 
     private var activityItem: NSMenuItem?
+    private var supportItem: NSMenuItem?
     private var profileSubmenu: NSMenu?
     private var recording = false
     private var watching = false
@@ -29,6 +31,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         onOpenProfile: @escaping () -> Void,
         onManageProfiles: @escaping () -> Void,
         onCheckForUpdates: @escaping () -> Void,
+        onSupport: @escaping () -> Void,
         onQuit: @escaping () -> Void
     ) {
         self.onGenerate = onGenerate
@@ -38,6 +41,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         self.onOpenProfile = onOpenProfile
         self.onManageProfiles = onManageProfiles
         self.onCheckForUpdates = onCheckForUpdates
+        self.onSupport = onSupport
         self.onQuit = onQuit
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
@@ -154,6 +158,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         profile.target = self
         menu.addItem(profile)
 
+        let support = NSMenuItem(title: supportTitle, action: #selector(supportAction), keyEquivalent: "")
+        support.target = self
+        menu.addItem(support)
+        supportItem = support
+
         menu.addItem(.separator())
 
         let quit = NSMenuItem(title: "Quit Openfish", action: #selector(quitAction), keyEquivalent: "q")
@@ -168,8 +177,14 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     @objc private func toggleActivityAction() { onToggleActivity() }
     @objc private func settingsAction() { onSettings() }
     @objc private func checkForUpdatesAction() { onCheckForUpdates() }
+    @objc private func supportAction() { onSupport() }
     @objc private func openProfileAction() { onOpenProfile() }
     @objc private func quitAction() { onQuit() }
+
+    /// "Support Openfish…" normally; a quiet acknowledgement once they've chipped in.
+    private var supportTitle: String {
+        SupportStore.shared.hasSupported ? "♥ You're a supporter" : "Support Openfish…"
+    }
 
     // MARK: Profiles
 
@@ -177,6 +192,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     /// time the menu opens so it reflects adds/renames/active changes.
     func menuNeedsUpdate(_ menu: NSMenu) {
         rebuildProfileSubmenu()
+        supportItem?.title = supportTitle
     }
 
     private func rebuildProfileSubmenu() {

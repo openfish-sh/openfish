@@ -180,6 +180,7 @@ final class Coordinator {
                 self.inline.finish(with: full)
                 self.onThinkingStateChanged(false)
                 self.memory.record(profileID: profileID, context: ctx, generated: full, final: full, disposition: .accepted)
+                self.noteValueMoment()
             } catch is CancellationError {
                 if self.directGeneration == gen { self.inline.clear(); self.onThinkingStateChanged(false) }
             } catch {
@@ -251,6 +252,18 @@ final class Coordinator {
         let disposition: Interaction.Disposition = (text == lastGenerated) ? .accepted : .edited
         memory.record(profileID: overlayProfileID ?? ProfileStore.shared.activeID,
                       context: ctx, generated: lastGenerated, final: text, disposition: disposition)
+        noteValueMoment()
+    }
+
+    /// Count a successfully accepted reply and — if the app has earned its place and
+    /// the moment is right — show the one-shot support nudge a beat later, so it
+    /// never blocks or covers the insert the user just made.
+    private func noteValueMoment() {
+        SupportStore.shared.recordValueMoment()
+        guard SupportStore.shared.shouldNudge else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+            SupportNudge.shared.show()
+        }
     }
 
     private func cancel() {
