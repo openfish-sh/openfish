@@ -77,9 +77,16 @@ enum PromptBuilder {
         let name = selfName.trimmingCharacters(in: .whitespacesAndNewlines)
         if !name.isEmpty {
             var identity = "You are writing as \(name)."
-            let aliases = selfAliases
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty }
+            // Keep aliases that add something: non-empty, not a repeat of the name,
+            // not a repeat of an earlier alias (all case-insensitive). Otherwise the
+            // line restates the name or lists the same handle twice.
+            var seen: Set<String> = [name.lowercased()]
+            var aliases: [String] = []
+            for raw in selfAliases {
+                let alias = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !alias.isEmpty, seen.insert(alias.lowercased()).inserted else { continue }
+                aliases.append(alias)
+            }
             if !aliases.isEmpty {
                 identity += " In conversations you may also appear as \(aliases.joined(separator: ", ")) — messages under any of those names are your own, so treat them as you."
             }

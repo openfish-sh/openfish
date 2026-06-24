@@ -128,6 +128,47 @@ final class PromptBuilderTests: XCTestCase {
                                     selfName: "", selfAliases: ["Rubke"])
         XCTAssertFalse(r.systemPrompt.contains("Rubke"))
     }
+
+    func testAliasesDedupedAgainstNameAndEachOther() {
+        let r = PromptBuilder.build(context: ctx(), styleDescription: "", model: "m",
+                                    selfName: "Ruben", selfAliases: ["ruben", "Rubke", "Rubke"])
+        let prompt = r.systemPrompt
+        XCTAssertEqual(prompt.components(separatedBy: "Rubke").count - 1, 1, "duplicate alias should collapse to one")
+        XCTAssertFalse(prompt.lowercased().contains("appear as ruben"), "an alias equal to the name should be dropped")
+    }
+
+    // End-to-end: the Settings the UI writes flow through the exact path
+    // Coordinator.makeRequest uses to build a request. Saves/restores the shared
+    // singleton so it can't leak into other tests.
+    @MainActor
+    func testSettingNameFlowsIntoPrompt() {
+        let s = Settings.shared
+        let (savedName, savedAliases) = (s.selfName, s.selfAliases)
+        defer { s.selfName = savedName; s.selfAliases = savedAliases }
+
+        s.selfName = "Test Persson"
+        s.selfAliases = "TP, T.P."
+        XCTAssertEqual(s.effectiveSelfName, "Test Persson")
+        XCTAssertEqual(s.selfAliasList, ["TP", "T.P."])
+
+        let r = PromptBuilder.build(context: ctx(), styleDescription: "", model: "m",
+                                    selfName: s.effectiveSelfName, selfAliases: s.selfAliasList)
+        XCTAssertTrue(r.systemPrompt.contains("writing as Test Persson"))
+        XCTAssertTrue(r.systemPrompt.contains("TP"))
+        XCTAssertTrue(r.systemPrompt.contains("T.P."))
+    }
+
+    @MainActor
+    func testEffectiveSelfNameFallsBackToOSNameWhenBlank() {
+        let s = Settings.shared
+        let saved = s.selfName
+        defer { s.selfName = saved }
+
+        s.selfName = "   "                       // blank → fall back to the OS name
+        XCTAssertEqual(s.effectiveSelfName, Settings.osFullName)
+        s.selfName = "Explicit Name"             // set → use it verbatim
+        XCTAssertEqual(s.effectiveSelfName, "Explicit Name")
+    }
 }
 
 final class CodableModelTests: XCTestCase {
