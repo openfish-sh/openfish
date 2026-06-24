@@ -29,6 +29,30 @@ in Docs, then replying in Slack — without screen recording.
 - Screen Recording TCC permission only when screenshots are enabled.
 - Bounded retention + size caps; clear data-deletion path.
 
+### 2. Meeting notes (à la anarlog / Granola)
+Record a call, transcribe it, and generate markdown notes — local-first, BYOK.
+We already have ~40%: mic capture, Whisper transcription, LLM plumbing, file storage.
+The new work, roughly in order of difficulty:
+- **System-audio capture** (the hard part): the *other* participants' audio, not just the
+  mic. ScreenCaptureKit (macOS 13+) or the macOS 14.4+ Core Audio process-tap API, plus a
+  Screen Recording TCC permission.
+- **Long-form chunked transcription** pipeline (optional speaker diarization) — heavier than
+  the current push-to-talk dictation.
+- **A notes window** — OpenFish is menu-bar-only today; viewing/editing notes needs a real
+  window + session management.
+- **Summarize-to-notes** prompt + markdown store (easy; reuses existing pieces).
+Moderately large — a distinct product surface, not a small add. Native (ScreenCaptureKit +
+on-device options) would beat anarlog's Tauri stack here.
+
+## Updates & monetization
+- **Auto-updates** via Sparkle — now unblocked (Apple Developer ID available). Needs
+  Developer ID signing + notarization, an appcast feed (GitHub Releases), and EdDSA-signed
+  builds.
+- **14-day free trial, then one-time purchase.** A licensing layer: a local trial countdown,
+  then a license-key check once bought. One-time payment + key issuance via Gumroad / Lemon
+  Squeezy / Paddle (no backend to operate). Needs some tamper-resistance on the trial clock,
+  and a grace path for the BYOK-only crowd.
+
 ## Polish / smaller items
 - **Realtime/streaming dictation** — text as you speak (needs a streaming STT:
   OpenAI realtime websocket, or a local streaming model). Current dictation is batch.
@@ -42,8 +66,11 @@ in Docs, then replying in Slack — without screen recording.
 
 ## Distribution (before a public download)
 - **Developer ID signing + notarization** so a downloaded build opens without the
-  Gatekeeper quarantine prompt (current `bundle.sh` uses a local self-signed cert).
-- **A GitHub Release** with a `.zip`/`.dmg` artifact (source-only today).
+  Gatekeeper prompt — Apple Developer account now available; `bundle.sh` still uses a local
+  self-signed cert, so wire the real identity + a `notarytool` step. (Also kills the repeated
+  Keychain "allow" prompts.)
+- ~~A GitHub Release with a `.zip`/`.dmg` artifact~~ — **done** (v0.1.0 + Homebrew tap cask,
+  `brew install --cask openfish-sh/tap/openfish`).
 - **README screenshots / demo GIF** of the overlay, inline mode, and dictation.
 
 ## Done (for reference)
