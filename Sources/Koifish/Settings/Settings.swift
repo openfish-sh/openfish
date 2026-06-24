@@ -140,16 +140,6 @@ final class Settings: ObservableObject {
     @Published var activityMemoryEnabled: Bool {
         didSet { defaults.set(activityMemoryEnabled, forKey: Keys.activityMemoryEnabled) }
     }
-    /// Optional seed description of the user's voice, editable in settings.
-    @Published var styleSeed: String {
-        didSet { defaults.set(styleSeed, forKey: Keys.styleSeed) }
-    }
-    /// Standing facts about the user (role, projects, people, preferences) that the
-    /// user authors, folded into every reply as background. Distinct from styleSeed,
-    /// which is about voice. Empty by default.
-    @Published var userBrief: String {
-        didSet { defaults.set(userBrief, forKey: Keys.userBrief) }
-    }
     /// Transcription model for dictation (empty → sensible default per source).
     @Published var voiceModel: String {
         didSet { defaults.set(voiceModel, forKey: Keys.voiceModel) }
@@ -171,8 +161,6 @@ final class Settings: ObservableObject {
         dictateHotkey = HotkeyTrigger(encoded: defaults.string(forKey: Keys.dictateHotkey) ?? "") ?? .defaultDictate
         learningEnabled = defaults.object(forKey: Keys.learningEnabled) as? Bool ?? true
         activityMemoryEnabled = defaults.object(forKey: Keys.activityMemoryEnabled) as? Bool ?? false
-        styleSeed = defaults.string(forKey: Keys.styleSeed) ?? ""
-        userBrief = defaults.string(forKey: Keys.userBrief) ?? ""
         voiceModel = defaults.string(forKey: Keys.voiceModel) ?? ""
         voiceLanguage = defaults.string(forKey: Keys.voiceLanguage) ?? ""
     }
@@ -221,8 +209,6 @@ final class Settings: ObservableObject {
         static let dictateHotkey = "dictateHotkey"
         static let learningEnabled = "learningEnabled"
         static let activityMemoryEnabled = "activityMemoryEnabled"
-        static let styleSeed = "styleSeed"
-        static let userBrief = "userBrief"
         static let voiceModel = "voiceModel"
         static let voiceLanguage = "voiceLanguage"
     }

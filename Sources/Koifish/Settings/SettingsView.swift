@@ -442,62 +442,117 @@ private struct MemoryCard: View {
 
 private struct StyleCards: View {
     @ObservedObject var settings: Settings
-    @State private var profile = StyleProfile.load()
+    @ObservedObject private var profiles = ProfileStore.shared
+    @State private var selectedID: UUID = ProfileStore.shared.activeID
+    @State private var learned = StyleProfile()
     @State private var note = ""
+
+    /// The profile currently being edited (falls back to active if it vanishes).
+    private var selected: Profile {
+        profiles.profiles.first { $0.id == selectedID } ?? profiles.active
+    }
 
     var body: some View {
         VStack(spacing: 14) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("About you").font(.headline)
-                Text("Standing facts about you, your work, and the people and projects you deal with. OpenFish folds this into every reply so it gets the details right. It stays on your Mac and only leaves inside the replies you generate.")
-                    .font(.caption).foregroundStyle(.secondary)
-                TextEditor(text: $settings.userBrief)
-                    .font(.body)
-                    .frame(minHeight: 90)
-                    .scrollContentBackground(.hidden)
-                    .padding(6)
-                    .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
-            }
-            .glassCard()
-
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Your voice").font(.headline)
-                Toggle("Learn my style from accepted replies", isOn: $settings.learningEnabled)
-                Text("Optional: describe your voice, or paste a couple of example messages. OpenFish refines this automatically as you accept replies.")
-                    .font(.caption).foregroundStyle(.secondary)
-                TextEditor(text: $settings.styleSeed)
-                    .font(.body)
-                    .frame(minHeight: 90)
-                    .scrollContentBackground(.hidden)
-                    .padding(6)
-                    // `.primary` adapts: a subtle dark fill in light mode, light in
-                    // dark mode — a hardcoded black tint vanishes on a dark window.
-                    .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
-            }
-            .glassCard()
-
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Learned style").font(.headline)
-                if profile.description.isEmpty {
-                    Text("Nothing learned yet — accept a few replies and OpenFish will build a profile.")
-                        .font(.caption).foregroundStyle(.secondary)
-                } else {
-                    ScrollView { Text(profile.description).font(.callout).textSelection(.enabled) }
-                        .frame(maxHeight: 120)
-                    Text("Based on \(profile.sampleCount) sample(s).")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-                HStack {
-                    Button("Refresh now") {
-                        Task { await Personalizer.refresh(); profile = StyleProfile.load(); note = "Refreshed." }
-                    }.glassButton()
-                    Button("Forget learned style") {
-                        StyleProfile().save(); profile = StyleProfile.load(); note = "Cleared."
-                    }.glassButton()
-                    if !note.isEmpty { Text(note).font(.caption).foregroundStyle(.secondary) }
-                }
-            }
-            .glassCard()
+            profilesCard
+            aboutYouCard
+            voiceCard
+            learnedStyleCard
         }
+        .onAppear(perform: reloadLearned)
+        .onChange(of: selectedID) { _, _ in note = ""; reloadLearned() }
+    }
+
+    private var profilesCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Profiles").font(.headline)
+            Text("Separate personalities — e.g. Personal, Work — Sales, Internal comms. Each learns its own voice. Switch the active one from the menu-bar fish; edit any of them here.")
+                .font(.caption).foregroundStyle(.secondary)
+            Picker("Editing", selection: $selectedID) {
+                ForEach(profiles.profiles) { p in
+                    Text(p.id == profiles.activeID ? "\(p.name) — active" : p.name).tag(p.id)
+                }
+            }.labelsHidden()
+            TextField("Profile name", text: nameBinding).textFieldStyle(.roundedBorder)
+            HStack {
+                Button(selectedID == profiles.activeID ? "Active" : "Make active") { profiles.setActive(selectedID) }
+                    .glassButton().disabled(selectedID == profiles.activeID)
+                Button("New") { selectedID = profiles.add(name: "New profile").id }.glassButton()
+                Button("Duplicate") { if let p = profiles.duplicate(selectedID) { selectedID = p.id } }.glassButton()
+                Button("Delete") { profiles.delete(selectedID); selectedID = profiles.activeID }
+                    .glassButton().disabled(profiles.profiles.count <= 1)
+            }
+        }
+        .glassCard()
+    }
+
+    private var aboutYouCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("About you — \(selected.name)").font(.headline)
+            Text("Standing facts for this profile — your role, the people and projects involved, how you like things handled. Folded into every reply in this profile. Stays on your Mac.")
+                .font(.caption).foregroundStyle(.secondary)
+            editor(briefBinding)
+        }
+        .glassCard()
+    }
+
+    private var voiceCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Your voice — \(selected.name)").font(.headline)
+            Toggle("Learn my style from accepted replies", isOn: $settings.learningEnabled)
+            Text("Optional: describe this voice, or paste a couple of example messages. OpenFish refines it automatically as you accept replies in this profile.")
+                .font(.caption).foregroundStyle(.secondary)
+            editor(seedBinding)
+        }
+        .glassCard()
+    }
+
+    private var learnedStyleCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Learned style — \(selected.name)").font(.headline)
+            if learned.description.isEmpty {
+                Text("Nothing learned yet — accept a few replies in this profile and OpenFish will build one.")
+                    .font(.caption).foregroundStyle(.secondary)
+            } else {
+                ScrollView { Text(learned.description).font(.callout).textSelection(.enabled) }
+                    .frame(maxHeight: 120)
+                Text("Based on \(learned.sampleCount) sample(s).").font(.caption).foregroundStyle(.secondary)
+            }
+            HStack {
+                Button("Refresh now") {
+                    let dir = AppPaths.profileDir(selectedID)
+                    Task { await Personalizer.refresh(in: dir); reloadLearned(); note = "Refreshed." }
+                }.glassButton()
+                Button("Forget learned style") {
+                    StyleProfile().save(in: AppPaths.profileDir(selectedID)); reloadLearned(); note = "Cleared."
+                }.glassButton()
+                if !note.isEmpty { Text(note).font(.caption).foregroundStyle(.secondary) }
+            }
+        }
+        .glassCard()
+    }
+
+    private func editor(_ text: Binding<String>) -> some View {
+        TextEditor(text: text)
+            .font(.body)
+            .frame(minHeight: 80)
+            .scrollContentBackground(.hidden)
+            .padding(6)
+            // `.primary` adapts to light/dark; a hardcoded tint vanishes on one of them.
+            .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var nameBinding: Binding<String> {
+        Binding(get: { selected.name }, set: { profiles.rename(selectedID, to: $0) })
+    }
+    private var briefBinding: Binding<String> {
+        Binding(get: { selected.brief }, set: { profiles.setBrief(selectedID, $0) })
+    }
+    private var seedBinding: Binding<String> {
+        Binding(get: { selected.styleSeed }, set: { profiles.setStyleSeed(selectedID, $0) })
+    }
+
+    private func reloadLearned() {
+        learned = StyleProfile.load(in: AppPaths.profileDir(selectedID))
     }
 }

@@ -10,9 +10,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let onToggleActivity: () -> Void
     private let onSettings: () -> Void
     private let onOpenProfile: () -> Void
+    private let onManageProfiles: () -> Void
     private let onQuit: () -> Void
 
     private var activityItem: NSMenuItem?
+    private var profileSubmenu: NSMenu?
     private var recording = false
     private var watching = false
     private var thinking = false
@@ -24,6 +26,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         onToggleActivity: @escaping () -> Void,
         onSettings: @escaping () -> Void,
         onOpenProfile: @escaping () -> Void,
+        onManageProfiles: @escaping () -> Void,
         onQuit: @escaping () -> Void
     ) {
         self.onGenerate = onGenerate
@@ -31,6 +34,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         self.onToggleActivity = onToggleActivity
         self.onSettings = onSettings
         self.onOpenProfile = onOpenProfile
+        self.onManageProfiles = onManageProfiles
         self.onQuit = onQuit
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
@@ -98,7 +102,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             tip = "OpenFish — watching activity"
         } else {
             image = MenuBarIcon.fish
-            tip = "OpenFish"
+            tip = "OpenFish — \(ProfileStore.shared.active.name)"
         }
         button.image = image
         button.toolTip = tip
@@ -115,6 +119,15 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let dictate = NSMenuItem(title: "Dictate", action: #selector(dictateAction), keyEquivalent: "")
         dictate.target = self
         menu.addItem(dictate)
+
+        menu.addItem(.separator())
+
+        let profileItem = NSMenuItem(title: "Profile", action: nil, keyEquivalent: "")
+        let submenu = NSMenu()
+        profileItem.submenu = submenu
+        profileSubmenu = submenu
+        menu.addItem(profileItem)
+        rebuildProfileSubmenu()
 
         menu.addItem(.separator())
 
@@ -149,4 +162,37 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     @objc private func settingsAction() { onSettings() }
     @objc private func openProfileAction() { onOpenProfile() }
     @objc private func quitAction() { onQuit() }
+
+    // MARK: Profiles
+
+    /// The main menu carries this delegate; refresh the dynamic profile list each
+    /// time the menu opens so it reflects adds/renames/active changes.
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        rebuildProfileSubmenu()
+    }
+
+    private func rebuildProfileSubmenu() {
+        guard let submenu = profileSubmenu else { return }
+        submenu.removeAllItems()
+        let store = ProfileStore.shared
+        for profile in store.profiles {
+            let item = NSMenuItem(title: profile.name, action: #selector(selectProfileAction(_:)), keyEquivalent: "")
+            item.target = self
+            item.state = profile.id == store.activeID ? .on : .off
+            item.representedObject = profile.id
+            submenu.addItem(item)
+        }
+        submenu.addItem(.separator())
+        let manage = NSMenuItem(title: "Manage Profiles…", action: #selector(manageProfilesAction), keyEquivalent: "")
+        manage.target = self
+        submenu.addItem(manage)
+    }
+
+    @objc private func selectProfileAction(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? UUID else { return }
+        ProfileStore.shared.setActive(id)
+        updateAppearance()
+    }
+
+    @objc private func manageProfilesAction() { onManageProfiles() }
 }

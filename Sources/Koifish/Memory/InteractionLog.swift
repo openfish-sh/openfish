@@ -13,13 +13,13 @@ enum InteractionLog {
     private static let maxBytes = 2_000_000          // ~2 MB before we trim
     private static let keepWhenTrimming = 1000       // most-recent entries retained
 
-    static func append(_ interaction: Interaction) {
+    static func append(_ interaction: Interaction, in dir: URL) {
         queue.async {
             guard let line = try? JSONEncoder().encode(interaction),
                   var text = String(data: line, encoding: .utf8)
             else { return }
             text += "\n"
-            let url = AppPaths.interactionLog
+            let url = dir.appendingPathComponent("interactions.jsonl")
 
             if let handle = try? FileHandle(forWritingTo: url) {
                 defer { try? handle.close() }
@@ -33,9 +33,10 @@ enum InteractionLog {
     }
 
     /// Read the most recent `limit` interactions matching `dispositions`.
-    static func recent(limit: Int, dispositions: Set<Interaction.Disposition>) -> [Interaction] {
+    static func recent(limit: Int, dispositions: Set<Interaction.Disposition>, in dir: URL) -> [Interaction] {
         queue.sync {
-            guard let content = try? String(contentsOf: AppPaths.interactionLog, encoding: .utf8) else {
+            let url = dir.appendingPathComponent("interactions.jsonl")
+            guard let content = try? String(contentsOf: url, encoding: .utf8) else {
                 return []
             }
             let decoder = JSONDecoder()

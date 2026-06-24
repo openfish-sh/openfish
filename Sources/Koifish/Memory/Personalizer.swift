@@ -6,8 +6,9 @@ enum Personalizer {
     /// Number of accepted/edited samples to feed into a refresh.
     static let sampleWindow = 20
 
-    /// Generate an updated style description from recent samples and persist it.
-    static func refresh() async {
+    /// Generate an updated style description for the profile whose data lives in
+    /// `dir`, from that profile's recent samples, and persist it there.
+    static func refresh(in dir: URL) async {
         // Snapshot main-actor settings once, then run entirely off the main actor.
         let config = await MainActor.run {
             let s = Settings.shared
@@ -18,7 +19,7 @@ enum Personalizer {
         let provider = config.provider
         guard let apiKey = KeychainStore.key(for: provider), !apiKey.isEmpty else { return }
 
-        let samples = InteractionLog.recent(limit: sampleWindow, dispositions: [.accepted, .edited])
+        let samples = InteractionLog.recent(limit: sampleWindow, dispositions: [.accepted, .edited], in: dir)
         guard samples.count >= 3 else { return } // not enough signal yet
 
         let request = GenerationRequest(
@@ -31,11 +32,11 @@ enum Personalizer {
         let ai = AIProviderFactory.make(provider, baseURL: config.baseURL)
         do {
             let description = try await ai.complete(request, apiKey: apiKey)
-            var profile = StyleProfile.load()
+            var profile = StyleProfile.load(in: dir)
             profile.description = description.trimmingCharacters(in: .whitespacesAndNewlines)
             profile.sampleCount = samples.count
             profile.updatedAtEpoch = Date().timeIntervalSince1970
-            profile.save()
+            profile.save(in: dir)
             Log.info("Style profile refreshed from \(samples.count) samples.")
         } catch {
             Log.error("Style refresh failed: \(error.localizedDescription)")

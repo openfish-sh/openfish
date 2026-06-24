@@ -24,6 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onToggleActivity: { [weak self] in self?.coordinator.toggleActivityWatching() },
             onSettings: { [weak self] in self?.showSettings() },
             onOpenProfile: { [weak self] in self?.coordinator.revealDataFolder() },
+            onManageProfiles: { [weak self] in self?.showSettings(tab: .style) },
             onQuit: { NSApp.terminate(nil) }
         )
 

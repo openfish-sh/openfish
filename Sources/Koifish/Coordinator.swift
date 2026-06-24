@@ -17,6 +17,9 @@ final class Coordinator {
     private var generationTask: Task<Void, Never>?
     private var directGeneration = 0
     private var overlayGeneration = 0
+    /// The profile active when the current overlay generation started, so an
+    /// accept/reject records against it even if the user switches profile mid-review.
+    private var overlayProfileID: UUID?
     private var dictationSession = 0
     private var lastGenerated = ""
 
@@ -121,12 +124,13 @@ final class Coordinator {
     /// Build the provider + key + request for the current context (config already validated).
     private func makeRequest() -> (provider: ProviderKind, key: String, request: GenerationRequest) {
         let settings = Settings.shared
+        let profile = ProfileStore.shared.active
         let key = KeychainStore.key(for: settings.provider) ?? ""
-        let style = memory.styleDescription(seed: settings.styleSeed)
+        let style = memory.styleDescription(for: profile)
         let recentActivity = activity.recentDigest(excludingApp: context.appName, excludingWindow: context.windowTitle)
         let request = PromptBuilder.build(context: context, styleDescription: style,
                                           model: settings.activeModel, recentActivity: recentActivity,
-                                          userBrief: settings.userBrief)
+                                          userBrief: profile.brief)
         return (settings.provider, key, request)
     }
 
@@ -159,6 +163,7 @@ final class Coordinator {
 
         let ai = AIProviderFactory.make(provider, baseURL: Settings.shared.activeBaseURL)
         let ctx = context
+        let profileID = ProfileStore.shared.activeID
         directGeneration &+= 1
         let gen = directGeneration
 
@@ -172,7 +177,7 @@ final class Coordinator {
                 guard self.directGeneration == gen else { return }
                 self.inline.finish(with: full)
                 self.onThinkingStateChanged(false)
-                self.memory.record(context: ctx, generated: full, final: full, disposition: .accepted)
+                self.memory.record(profileID: profileID, context: ctx, generated: full, final: full, disposition: .accepted)
             } catch is CancellationError {
                 if self.directGeneration == gen { self.inline.clear(); self.onThinkingStateChanged(false) }
             } catch {
@@ -198,6 +203,7 @@ final class Coordinator {
 
         generationTask?.cancel()
         lastGenerated = ""
+        overlayProfileID = ProfileStore.shared.activeID
         overlayGeneration &+= 1
         let gen = overlayGeneration
         if showOverlayFirst { overlay.show(contextSummary: summary()) }
@@ -241,13 +247,15 @@ final class Coordinator {
 
         // Record for style learning: edited if the user changed the draft.
         let disposition: Interaction.Disposition = (text == lastGenerated) ? .accepted : .edited
-        memory.record(context: ctx, generated: lastGenerated, final: text, disposition: disposition)
+        memory.record(profileID: overlayProfileID ?? ProfileStore.shared.activeID,
+                      context: ctx, generated: lastGenerated, final: text, disposition: disposition)
     }
 
     private func cancel() {
         generationTask?.cancel()
         if !lastGenerated.isEmpty {
-            memory.record(context: context, generated: lastGenerated, final: "", disposition: .rejected)
+            memory.record(profileID: overlayProfileID ?? ProfileStore.shared.activeID,
+                          context: context, generated: lastGenerated, final: "", disposition: .rejected)
         }
         overlay.hide()
     }
