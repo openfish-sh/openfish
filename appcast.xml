@@ -3,6 +3,14 @@
     <channel>
         <title>Openfish</title>
         <item>
+            <title>0.1.3</title>
+            <pubDate>Wed, 24 Jun 2026 13:14:54 +0200</pubDate>
+            <sparkle:version>4</sparkle:version>
+            <sparkle:shortVersionString>0.1.3</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/openfish-sh/openfish/releases/download/v0.1.3/Openfish.dmg" length="2549921" type="application/octet-stream" sparkle:edSignature="ZwXhl6MnWbHDObZhYcd/ieqmBkUOTl/8j7Lylx5rfqoMwkc/iUMtqhFwudT7MNGm9dpS926592R6drbOC/ewDQ=="/>
+        </item>
+        <item>
             <title>0.1.2</title>
             <pubDate>Wed, 24 Jun 2026 12:43:55 +0200</pubDate>
             <sparkle:version>3</sparkle:version>
