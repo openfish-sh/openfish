@@ -48,13 +48,13 @@ fi
 #    secure timestamp. Falls back to the dev cert if none is installed.
 #  - debug: the stable self-signed "Koifish Dev" so macOS TCC grants (Accessibility,
 #    Microphone) survive rebuilds; ad-hoc if that cert isn't set up.
-# Release signing identity: a Developer ID Application cert (distributable +
-# notarizable). Set OPENFISH_SIGN_ID to pick a specific one; otherwise use the first
-# installed Developer ID.
+# Release signing identity: a personal (Ruben Flam) Developer ID Application cert.
+# Set OPENFISH_SIGN_ID to choose explicitly. We don't auto-fall back to a company
+# cert — a release without a Ruben Flam Developer ID stays on the dev cert (warned).
 DEV_ID="${OPENFISH_SIGN_ID:-}"
 if [[ -z "$DEV_ID" ]]; then
     DEV_ID=$(security find-identity -p codesigning -v 2>/dev/null \
-        | grep "Developer ID Application" | head -1 \
+        | grep "Developer ID Application" | grep -i "Ruben Flam" | head -1 \
         | sed -E 's/^[^"]*"([^"]*)".*/\1/')
 fi
 TIMESTAMP_ARG=""
@@ -73,8 +73,8 @@ else
 fi
 
 if [[ "$CONFIG" == "release" && -z "$DEV_ID" ]]; then
-    echo "    (no Developer ID Application cert found — install one, or set"
-    echo "     OPENFISH_SIGN_ID, to produce a distributable build.)"
+    echo "    (no 'Developer ID Application: Ruben Flam' cert — create one for team"
+    echo "     DVKGX6LQ53 (needs paid membership) or set OPENFISH_SIGN_ID; using dev cert.)"
 fi
 
 # A stable identifier keeps the TCC bundle identity constant across rebuilds.
