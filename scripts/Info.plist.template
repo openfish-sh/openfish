@@ -27,6 +27,7 @@
 			<string>sh.koifish.Koifish</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
+				<string>openfish</string>
 				<string>koifish</string>
 			</array>
 		</dict>

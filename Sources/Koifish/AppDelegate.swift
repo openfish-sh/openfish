@@ -56,11 +56,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
-    /// Handle `koifish://` deep links. The website's post-checkout thank-you page
-    /// opens `koifish://supported`, which flips on the local supporter state — paying
-    /// is honor-system, so there's no license to validate.
+    /// Handle our deep links. The website's post-checkout thank-you page opens
+    /// `openfish://supported`, which flips on the local supporter state — paying is
+    /// honor-system, so there's no license to validate. `koifish://` is accepted too
+    /// as a fallback (the bundle id stays `sh.koifish.Koifish` to preserve grants).
     func application(_ application: NSApplication, open urls: [URL]) {
-        for url in urls where url.scheme == "koifish" && url.host == "supported" {
+        for url in urls where (url.scheme == "openfish" || url.scheme == "koifish") && url.host == "supported" {
             SupportStore.shared.markSupported()
             Toast.shared.show("Thanks for supporting Openfish ♥", isError: false)
         }
