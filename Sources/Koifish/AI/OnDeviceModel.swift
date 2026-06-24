@@ -10,11 +10,11 @@ import FoundationModels
 /// switched off, or the model still downloading), callers fall back to the cloud
 /// provider.
 ///
-/// OpenFish targets macOS 14, so the framework is compiled out on SDKs that lack
+/// Openfish targets macOS 14, so the framework is compiled out on SDKs that lack
 /// it (`#if canImport`) and every live entry point is runtime-gated with
 /// `if #available(macOS 26, *)`. Safe to call from anywhere on any supported OS.
 ///
-/// This is OpenFish's own seam — not tied to any earlier project's plumbing.
+/// This is Openfish's own seam — not tied to any earlier project's plumbing.
 enum OnDeviceModel {
 
     /// Whether the on-device model can be used, and if not, why — for logging,

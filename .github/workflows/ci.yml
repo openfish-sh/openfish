@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   build-test:
-    # OpenFish uses Liquid Glass (macOS 26 SDK), so it needs the Xcode 26 toolchain.
+    # Openfish uses Liquid Glass (macOS 26 SDK), so it needs the Xcode 26 toolchain.
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v4

@@ -62,7 +62,7 @@ enum ActivityMemory {
 /// Opt-in, off-by-default capture of recent window text, for cross-window context.
 ///
 /// Privacy by design: **text only** (never screenshots), **in memory only** (never
-/// written to disk), skips OpenFish's own windows, and the buffer is **dropped the
+/// written to disk), skips Openfish's own windows, and the buffer is **dropped the
 /// moment watching is turned off**. Captures on app activation, debounced.
 @MainActor
 final class ActivityRecorder {

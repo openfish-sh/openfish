@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Package OpenFish.app into a distributable OpenFish.dmg (drag-to-Applications).
+# Package Openfish.app into a distributable Openfish.dmg (drag-to-Applications).
 # Run after: scripts/bundle.sh release
 #
 # The DMG is what you attach to a GitHub Release; the Homebrew cask points at it.
@@ -8,21 +8,21 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
-APP="OpenFish.app"
-OUT="$ROOT/OpenFish.dmg"
+APP="Openfish.app"
+OUT="$ROOT/Openfish.dmg"
 
 if [[ ! -d "$APP" ]]; then
     echo "Build it first:  ./scripts/bundle.sh release"
     exit 1
 fi
 
-STAGE="$(mktemp -d)/OpenFish"
+STAGE="$(mktemp -d)/Openfish"
 mkdir -p "$STAGE"
 cp -R "$APP" "$STAGE/"
 ln -s /Applications "$STAGE/Applications"   # drag-to-install target
 
 rm -f "$OUT"
-hdiutil create -volname "OpenFish" -srcfolder "$STAGE" -ov -format UDZO "$OUT" >/dev/null
+hdiutil create -volname "Openfish" -srcfolder "$STAGE" -ov -format UDZO "$OUT" >/dev/null
 rm -rf "$STAGE"
 
 echo "==> Wrote $OUT"

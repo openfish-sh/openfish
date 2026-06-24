@@ -1,11 +1,11 @@
 import AppKit
 
-/// Entry point. OpenFish is a menu-bar (accessory) app: no Dock icon, no main
+/// Entry point. Openfish is a menu-bar (accessory) app: no Dock icon, no main
 /// window. We drive the AppKit lifecycle directly rather than using the SwiftUI
 /// `App` protocol so we have full control over the status item, global event tap,
 /// and activation policy.
 @main
-enum OpenFishApp {
+enum OpenfishApp {
     @MainActor
     static func main() {
         let app = NSApplication.shared

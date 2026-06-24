@@ -6,7 +6,7 @@ enum AppPaths {
     static let dataFolder: URL = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         // Folder name stays "Koifish" so existing local data (style profile,
-        // interaction log) carries over across the OpenFish rename.
+        // interaction log) carries over across the Openfish rename.
         let folder = base.appendingPathComponent("Koifish", isDirectory: true)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         return folder

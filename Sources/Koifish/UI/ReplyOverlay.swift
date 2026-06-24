@@ -42,7 +42,7 @@ final class ReplyOverlayController {
             p.styleMask = [.titled, .closable, .fullSizeContentView, .nonactivatingPanel]
             p.titlebarAppearsTransparent = true
             p.titleVisibility = .hidden
-            p.title = "OpenFish"
+            p.title = "Openfish"
             p.isFloatingPanel = true
             p.level = .floating
             p.hidesOnDeactivate = false

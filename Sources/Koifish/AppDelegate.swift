@@ -8,7 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsWindowController: SettingsWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        Log.info("OpenFish launching (v\(Bundle.main.shortVersion))")
+        Log.info("Openfish launching (v\(Bundle.main.shortVersion))")
         Log.info("On-device model: \(OnDeviceModel.status)")
 
         // Accessory apps have no menu bar by default, which means standard
@@ -64,7 +64,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let settingsItem = appMenu.addItem(withTitle: "Settings…", action: #selector(openSettingsFromMenu), keyEquivalent: ",")
         settingsItem.target = self
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "Quit OpenFish", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: "Quit Openfish", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
 
         // Edit menu — provides the responder-chain editing shortcuts.
         let editItem = NSMenuItem()

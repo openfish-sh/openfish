@@ -13,9 +13,9 @@ CONFIG="${1:-debug}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-# Display name is OpenFish; the executable + bundle id stay "Koifish" /
+# Display name is Openfish; the executable + bundle id stay "Koifish" /
 # "sh.koifish.Koifish" so TCC grants and Keychain keys carry over.
-APP="OpenFish.app"
+APP="Openfish.app"
 APP_ID="sh.koifish.Koifish"
 
 echo "==> swift build ($CONFIG)"
@@ -43,12 +43,22 @@ else
     echo "    (no Resources/AppIcon.icns — run scripts/make_icon.sh to generate one)"
 fi
 
-# Prefer a stable self-signed identity so macOS TCC grants (Accessibility,
-# Microphone) survive rebuilds. Falls back to ad-hoc if it isn't provisioned.
-SIGN_IDENTITY="Koifish Dev"
-if security find-identity -p codesigning 2>/dev/null | grep -q "$SIGN_IDENTITY"; then
-    SIGN_ARG="$SIGN_IDENTITY"
-    echo "==> Code-signing with stable identity '$SIGN_IDENTITY' (permissions persist across rebuilds)"
+# Pick a signing identity:
+#  - release: a "Developer ID Application" cert (distributable + notarizable), with a
+#    secure timestamp. Falls back to the dev cert if none is installed.
+#  - debug: the stable self-signed "Koifish Dev" so macOS TCC grants (Accessibility,
+#    Microphone) survive rebuilds; ad-hoc if that cert isn't set up.
+DEV_ID=$(security find-identity -p codesigning -v 2>/dev/null \
+    | grep "Developer ID Application" | head -1 | sed -E 's/^[^"]*"([^"]*)".*/\1/')
+TIMESTAMP_ARG=""
+
+if [[ "$CONFIG" == "release" && -n "$DEV_ID" ]]; then
+    SIGN_ARG="$DEV_ID"
+    TIMESTAMP_ARG="--timestamp"
+    echo "==> Code-signing for release with '$DEV_ID' (hardened runtime + timestamp)"
+elif security find-identity -p codesigning 2>/dev/null | grep -q "Koifish Dev"; then
+    SIGN_ARG="Koifish Dev"
+    echo "==> Code-signing with stable dev identity 'Koifish Dev' (grants persist across rebuilds)"
 else
     SIGN_ARG="-"
     echo "==> Ad-hoc code-signing — run scripts/setup-dev-cert.sh once so permissions"
@@ -60,14 +70,12 @@ codesign --force --deep \
     --sign "$SIGN_ARG" \
     --identifier "$APP_ID" \
     --entitlements "scripts/Koifish.entitlements" \
-    --options runtime \
-    "$APP" 2>/dev/null || \
-codesign --force --deep \
-    --sign "$SIGN_ARG" \
-    --identifier "$APP_ID" \
-    --entitlements "scripts/Koifish.entitlements" \
+    --options runtime $TIMESTAMP_ARG \
     "$APP"
 
+if [[ "$CONFIG" == "release" && -n "$DEV_ID" ]]; then
+    echo "    Next: ./scripts/notarize.sh  (notarize + staple, needs your Apple credentials)"
+fi
 echo "==> Done: $ROOT/$APP"
 echo "    Launch with:  open ./$APP"
 echo "    Logs:         log stream --predicate 'process == \"Koifish\"' --level debug"

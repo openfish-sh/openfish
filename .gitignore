@@ -1,6 +1,6 @@
 # Build output
 .build/
-OpenFish.app/
+Openfish.app/
 Koifish.app/
 *.xcodeproj
 

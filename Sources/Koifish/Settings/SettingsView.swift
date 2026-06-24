@@ -43,7 +43,7 @@ struct SettingsView: View {
 
 // MARK: - Permissions (first thing the user sees)
 
-/// One card for every permission OpenFish uses, each with live status and a single
+/// One card for every permission Openfish uses, each with live status and a single
 /// obvious action. Accessibility is required; Microphone is only for dictation.
 private struct PermissionsCard: View {
     @State private var axTrusted = AXPermissions.isTrusted
@@ -406,7 +406,7 @@ private struct MemoryCard: View {
                 get: { settings.activityMemoryEnabled },
                 set: { coordinator.setActivityWatching($0); refresh() }
             ))
-            Text("Off by default. When on, OpenFish keeps the text of windows you recently visited so a reply can reference something from another app. Text only — never screenshots — kept in memory only, never written to disk, and cleared the moment you turn this off. OpenFish's own windows and password fields are skipped.")
+            Text("Off by default. When on, Openfish keeps the text of windows you recently visited so a reply can reference something from another app. Text only — never screenshots — kept in memory only, never written to disk, and cleared the moment you turn this off. Openfish's own windows and password fields are skipped.")
                 .font(.caption).foregroundStyle(.secondary)
 
             if settings.activityMemoryEnabled {
@@ -500,7 +500,7 @@ private struct StyleCards: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Your voice — \(selected.name)").font(.headline)
             Toggle("Learn my style from accepted replies", isOn: $settings.learningEnabled)
-            Text("Optional: describe this voice, or paste a couple of example messages. OpenFish refines it automatically as you accept replies in this profile.")
+            Text("Optional: describe this voice, or paste a couple of example messages. Openfish refines it automatically as you accept replies in this profile.")
                 .font(.caption).foregroundStyle(.secondary)
             editor(seedBinding)
         }
@@ -511,7 +511,7 @@ private struct StyleCards: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Learned style — \(selected.name)").font(.headline)
             if learned.description.isEmpty {
-                Text("Nothing learned yet — accept a few replies in this profile and OpenFish will build one.")
+                Text("Nothing learned yet — accept a few replies in this profile and Openfish will build one.")
                     .font(.caption).foregroundStyle(.secondary)
             } else {
                 ScrollView { Text(learned.description).font(.callout).textSelection(.enabled) }

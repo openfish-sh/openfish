@@ -3,7 +3,7 @@ import AppKit
 /// The menu-bar fish glyph, embedded as a base64 PNG. It ships inline because the
 /// hand-rolled bundler (scripts/bundle.sh) copies only the binary, Info.plist and
 /// AppIcon.icns — not SPM resource bundles — so a file resource wouldn't make it
-/// into OpenFish.app. Source art: koifish-website/public/fish.svg, rasterized to a
+/// into Openfish.app. Source art: koifish-website/public/fish.svg, rasterized to a
 /// 52x36 @2x bitmap (sized for an 18-pt-tall status item).
 enum MenuBarIcon {
     /// A template image: the system tints it for light/dark menu bars, exactly
@@ -17,7 +17,7 @@ enum MenuBarIcon {
         }
         // The literal is static, so this shouldn't happen — but a blank menu-bar
         // item is a bad failure mode, so fall back to a system fish glyph.
-        let fallback = NSImage(systemSymbolName: "fish", accessibilityDescription: "OpenFish") ?? NSImage()
+        let fallback = NSImage(systemSymbolName: "fish", accessibilityDescription: "Openfish") ?? NSImage()
         fallback.isTemplate = true
         return fallback
     }()

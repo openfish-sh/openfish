@@ -9,7 +9,7 @@ Tracked items to address before a public launch. Ordered roughly by priority.
 `ActivityRecorder`). Captures the focused window's text on app activation, keeps ~30 min
 in memory (never on disk), and feeds a compact "recent other windows" digest into the
 prompt. Off by default; menu + Settings toggle; buffer cleared when turned off; skips
-OpenFish's own windows and (via AX) secure fields. This covers the common case — drafting
+Openfish's own windows and (via AX) secure fields. This covers the common case — drafting
 in Docs, then replying in Slack — without screen recording.
 
 **Still to do (heavier, more privacy-sensitive):**
@@ -38,7 +38,7 @@ The new work, roughly in order of difficulty:
   Screen Recording TCC permission.
 - **Long-form chunked transcription** pipeline (optional speaker diarization) — heavier than
   the current push-to-talk dictation.
-- **A notes window** — OpenFish is menu-bar-only today; viewing/editing notes needs a real
+- **A notes window** — Openfish is menu-bar-only today; viewing/editing notes needs a real
   window + session management.
 - **Summarize-to-notes** prompt + markdown store (easy; reuses existing pieces).
 Moderately large — a distinct product surface, not a small add. Native (ScreenCaptureKit +
@@ -74,7 +74,7 @@ on-device options) would beat anarlog's Tauri stack here.
 - **README screenshots / demo GIF** of the overlay, inline mode, and dictation.
 
 ## Done (for reference)
-- Renamed to **OpenFish** (display name; bundle id kept for grant/key continuity).
+- Renamed to **Openfish** (display name; bundle id kept for grant/key continuity).
 - Generated app icon (replaceable via `Resources/AppIcon-1024.png` + `make_icon.sh`).
 - Universal insertion via synthesized paste/keystrokes (terminals, Chrome, Safari, native).
 - In-field animated placeholder (random word) for direct mode.

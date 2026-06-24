@@ -8,7 +8,7 @@ import Foundation
 /// reply as background. Plain text, user-owned, edited in Settings; it only
 /// leaves the Mac inside the replies the user generates.
 ///
-/// This is OpenFish's own notion — not tied to any earlier project's idea of an
+/// This is Openfish's own notion — not tied to any earlier project's idea of an
 /// identity file — so it carries its own name and prompt wording.
 struct UserBrief {
     var text: String

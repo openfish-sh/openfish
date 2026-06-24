@@ -42,7 +42,7 @@ struct EntityMention: Hashable, Sendable {
 /// so it does well on well-formed text (window titles, emails, documents) and
 /// under-recognizes lowercase casual chat and novel product names. It's a *seed*
 /// for an entity index, not the whole picture — an LLM pass can fill the gaps
-/// later. This notion is OpenFish's own.
+/// later. This notion is Openfish's own.
 enum EntityExtractor {
     private static let wantedSchemes: NLTagger.Options = [.omitPunctuation, .omitWhitespace, .joinNames]
 

@@ -94,15 +94,15 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let tip: String
         if recording {
             // Keep a distinct glyph for the active "listening" state.
-            image = NSImage(systemSymbolName: "mic.fill", accessibilityDescription: "OpenFish — listening")
+            image = NSImage(systemSymbolName: "mic.fill", accessibilityDescription: "Openfish — listening")
             image?.isTemplate = true
-            tip = "OpenFish — listening…"
+            tip = "Openfish — listening…"
         } else if watching {
             image = MenuBarIcon.fish
-            tip = "OpenFish — watching activity"
+            tip = "Openfish — watching activity"
         } else {
             image = MenuBarIcon.fish
-            tip = "OpenFish — \(ProfileStore.shared.active.name)"
+            tip = "Openfish — \(ProfileStore.shared.active.name)"
         }
         button.image = image
         button.toolTip = tip
@@ -149,7 +149,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
         menu.addItem(.separator())
 
-        let quit = NSMenuItem(title: "Quit OpenFish", action: #selector(quitAction), keyEquivalent: "q")
+        let quit = NSMenuItem(title: "Quit Openfish", action: #selector(quitAction), keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
 

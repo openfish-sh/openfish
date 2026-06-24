@@ -1,0 +1,108 @@
+{
+  "name": "koifish — first cut, refining…",
+  "product": "koifish — first cut, refining…",
+  "tagline": "",
+  "mapConfig": "./onboard/koifish/map.config.mjs",
+  "boxes": [
+    {
+      "id": "Sources",
+      "name": "Sources",
+      "sub": "Sources/",
+      "district": "core",
+      "responds": "",
+      "paths": [
+        "Sources"
+      ]
+    },
+    {
+      "id": "scripts",
+      "name": "Scripts",
+      "sub": "scripts/",
+      "district": "support",
+      "responds": "",
+      "paths": [
+        "scripts"
+      ]
+    },
+    {
+      "id": "Tests",
+      "name": "Tests",
+      "sub": "Tests/",
+      "district": "core",
+      "responds": "",
+      "paths": [
+        "Tests"
+      ]
+    },
+    {
+      "id": "Resources",
+      "name": "Resources",
+      "sub": "Resources/",
+      "district": "core",
+      "responds": "",
+      "paths": [
+        "Resources"
+      ]
+    },
+    {
+      "id": ".github",
+      "name": ".Github",
+      "sub": ".github/",
+      "district": "core",
+      "responds": "",
+      "paths": [
+        ".github"
+      ]
+    }
+  ],
+  "districts": [
+    {
+      "id": "core",
+      "name": "Core"
+    },
+    {
+      "id": "support",
+      "name": "Support"
+    }
+  ],
+  "lenses": {
+    "journey": {
+      "districts": [
+        {
+          "id": "core",
+          "name": "Core"
+        },
+        {
+          "id": "support",
+          "name": "Support"
+        }
+      ],
+      "home": {
+        "Sources": "core",
+        "scripts": "support",
+        "Tests": "core",
+        "Resources": "core",
+        ".github": "core"
+      }
+    },
+    "team": {
+      "districts": [
+        {
+          "id": "core",
+          "name": "Core"
+        },
+        {
+          "id": "support",
+          "name": "Support"
+        }
+      ],
+      "home": {
+        "Sources": "core",
+        "scripts": "support",
+        "Tests": "core",
+        "Resources": "core",
+        ".github": "core"
+      }
+    }
+  }
+}
