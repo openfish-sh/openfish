@@ -198,10 +198,10 @@ private struct ProviderConfigCard: View {
                     Button("Save", action: saveKey)
                         .glassButton()
                         .disabled(keyInput.trimmingCharacters(in: .whitespaces).isEmpty)
-                    Button("Test", action: testKey)
-                        .glassButton()
-                        .disabled(testing)
                 }
+                Button("Test Connection", action: testKey)
+                    .glassButton()
+                    .disabled(testing)
                 statusLine
                 if testing {
                     Label("Testing the connection…", systemImage: "ellipsis.circle")
