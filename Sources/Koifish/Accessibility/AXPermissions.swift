@@ -23,4 +23,19 @@ enum AXPermissions {
         let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
         NSWorkspace.shared.open(url)
     }
+
+    /// Quit and relaunch the app. A fresh launch is the reliable way to pick up a
+    /// just-fixed Accessibility grant — after the user re-adds the app, macOS can
+    /// keep handing the stale "not trusted" answer to the running process.
+    @MainActor
+    static func relaunch() {
+        let pid = ProcessInfo.processInfo.processIdentifier
+        let path = Bundle.main.bundlePath
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/bin/sh")
+        // Wait for this instance to exit, then reopen the bundle.
+        task.arguments = ["-c", "while kill -0 \(pid) 2>/dev/null; do sleep 0.2; done; open \"\(path)\""]
+        try? task.run()
+        NSApp.terminate(nil)
+    }
 }

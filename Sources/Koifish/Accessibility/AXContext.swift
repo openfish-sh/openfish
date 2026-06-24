@@ -45,17 +45,19 @@ enum AXContext {
         guard visited < maxElements, CFAbsoluteTimeGetCurrent() < deadline else { return }
         visited += 1
 
-        if CFEqual(element, focused) {
-            pieces.append(cursorMarker)
-        }
-
         // Chat apps tag each message bubble's group with an accessibility
         // description like "Speaker, body, time". Pick the speaker up here and
         // carry it down to the text node inside, so we can label who said what.
         let sender = (copyString(element, kAXDescriptionAttribute).flatMap(messageSpeaker(fromDescription:))) ?? sender
 
-        // Capture readable text: a non-empty value, or a static-text title.
-        if let value = copyString(element, kAXValueAttribute), !value.isEmpty, value.count < 2000 {
+        if CFEqual(element, focused) {
+            // The focused compose field: drop a cursor marker but DON'T capture its
+            // value — that's the user's own unsent draft, which PromptBuilder already
+            // sends in its own labeled block. Capturing it here too would duplicate it
+            // and, sitting right at the cursor, make the model read the user's own
+            // half-typed text as the latest message to reply to.
+            pieces.append(cursorMarker)
+        } else if let value = copyString(element, kAXValueAttribute), !value.isEmpty, value.count < 2000 {
             pieces.append(label(value, sender: sender))
         } else if copyString(element, kAXRoleAttribute) == "AXStaticText",
                   let title = copyString(element, kAXTitleAttribute), !title.isEmpty {

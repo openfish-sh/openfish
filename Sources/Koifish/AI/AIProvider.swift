@@ -5,7 +5,9 @@ struct GenerationRequest: Sendable {
     var systemPrompt: String
     var userPrompt: String
     var model: String
-    var maxTokens: Int = 1024
+    /// Output ceiling. Generous so replies/rewrites don't clip; for OpenAI GPT-5
+    /// this is `max_completion_tokens`, which also covers reasoning tokens.
+    var maxTokens: Int = 2048
 }
 
 enum AIError: LocalizedError, Sendable {

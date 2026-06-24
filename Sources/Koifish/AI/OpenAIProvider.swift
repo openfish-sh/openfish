@@ -28,9 +28,15 @@ struct OpenAIProvider: AIProvider, TranscriptionProvider {
                     req.setValue("application/json", forHTTPHeaderField: "Content-Type")
                     if !apiKey.isEmpty { req.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization") }
 
+                    // OpenAI's own GPT-5 models reject `max_tokens` and require
+                    // `max_completion_tokens`. The OpenAI-compatible endpoints we also
+                    // drive here (Gemini, Groq, OpenRouter, Ollama, …) still expect
+                    // `max_tokens`, so pick the field by provider.
+                    let useCompletionTokens = (kind == .openai)
                     let body = RequestBody(
                         model: request.model,
-                        maxTokens: request.maxTokens,
+                        maxTokens: useCompletionTokens ? nil : request.maxTokens,
+                        maxCompletionTokens: useCompletionTokens ? request.maxTokens : nil,
                         messages: [
                             .init(role: "system", content: request.systemPrompt),
                             .init(role: "user", content: request.userPrompt),
@@ -54,7 +60,9 @@ struct OpenAIProvider: AIProvider, TranscriptionProvider {
 
     private struct RequestBody: Encodable {
         let model: String
-        let maxTokens: Int
+        // Exactly one of these is set; nil Optionals are omitted from the JSON.
+        let maxTokens: Int?
+        let maxCompletionTokens: Int?
         let stream = true
         let messages: [Message]
         struct Message: Encodable { let role: String; let content: String }

@@ -71,7 +71,12 @@ private struct PermissionsCard: View {
                 denied: false,
                 primaryTitle: "Grant Access",
                 primary: { AXPermissions.prompt() },
-                openSettings: { AXPermissions.openSystemSettings() }
+                openSettings: { AXPermissions.openSystemSettings() },
+                // The grant is tied to the app's code signature, so after an update
+                // macOS may still list Openfish as enabled while reporting it as not
+                // trusted. Give the user the exact recovery + a one-click relaunch.
+                recoveryHint: "Already enabled in the list but this still says it's not? That happens after an update. In System Settings ▸ Privacy & Security ▸ Accessibility, remove Openfish with “–”, add it back with “+” and switch it on — then:",
+                onRelaunch: { AXPermissions.relaunch() }
             )
 
             Divider().opacity(0.3)
@@ -106,6 +111,12 @@ private struct PermissionRow: View {
     let primaryTitle: String
     let primary: () -> Void
     let openSettings: () -> Void
+    /// Extra guidance shown when the permission appears granted in System Settings
+    /// but isn't recognized (e.g. after an update changes the code signature).
+    var recoveryHint: String? = nil
+    /// When set, shows a "Quit & Reopen" button — the reliable way to pick up a
+    /// just-fixed grant.
+    var onRelaunch: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -127,6 +138,15 @@ private struct PermissionRow: View {
                     } else {
                         Button(primaryTitle, action: primary).glassButton()
                         Button("Open System Settings", action: openSettings).glassButton()
+                    }
+                }
+                if let recoveryHint {
+                    Text(recoveryHint)
+                        .font(.caption2).foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 2)
+                    if let onRelaunch {
+                        Button("Quit & Reopen Openfish", action: onRelaunch).glassButton()
                     }
                 }
             }

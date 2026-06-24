@@ -73,7 +73,7 @@ struct CompatiblePreset: Identifiable {
     static let all: [CompatiblePreset] = [
         .init(name: "Groq", baseURL: "https://api.groq.com/openai/v1", model: "llama-3.3-70b-versatile"),
         .init(name: "OpenRouter", baseURL: "https://openrouter.ai/api/v1", model: "anthropic/claude-sonnet-4.5"),
-        .init(name: "Gemini", baseURL: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.0-flash"),
+        .init(name: "Gemini", baseURL: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-3.5-flash"),
         .init(name: "Ollama (local)", baseURL: "http://localhost:11434/v1", model: "llama3.2"),
         .init(name: "LM Studio (local)", baseURL: "http://localhost:1234/v1", model: "local-model"),
     ]
@@ -151,9 +151,12 @@ final class Settings: ObservableObject {
 
     private init() {
         provider = ProviderKind(rawValue: defaults.string(forKey: Keys.provider) ?? "") ?? .anthropic
-        anthropicModel = defaults.string(forKey: Keys.anthropicModel) ?? AIModels.defaultAnthropic
-        openAIModel = defaults.string(forKey: Keys.openAIModel) ?? AIModels.defaultOpenAI
-        geminiModel = defaults.string(forKey: Keys.geminiModel) ?? AIModels.defaultGemini
+        // Heal stale selections: if a previously-saved model is no longer offered
+        // (e.g. the deprecated gpt-4o or the shut-down gemini-2.0-flash), fall back
+        // to the current default rather than calling a dead model id.
+        anthropicModel = Self.validModel(defaults.string(forKey: Keys.anthropicModel), in: AIModels.anthropicChoices, fallback: AIModels.defaultAnthropic)
+        openAIModel = Self.validModel(defaults.string(forKey: Keys.openAIModel), in: AIModels.openAIChoices, fallback: AIModels.defaultOpenAI)
+        geminiModel = Self.validModel(defaults.string(forKey: Keys.geminiModel), in: AIModels.geminiChoices, fallback: AIModels.defaultGemini)
         customBaseURL = defaults.string(forKey: Keys.customBaseURL) ?? ""
         customModel = defaults.string(forKey: Keys.customModel) ?? ""
         insertMode = InsertMode(rawValue: defaults.string(forKey: Keys.insertMode) ?? "") ?? .direct
@@ -163,6 +166,12 @@ final class Settings: ObservableObject {
         activityMemoryEnabled = defaults.object(forKey: Keys.activityMemoryEnabled) as? Bool ?? false
         voiceModel = defaults.string(forKey: Keys.voiceModel) ?? ""
         voiceLanguage = defaults.string(forKey: Keys.voiceLanguage) ?? ""
+    }
+
+    /// A saved model id if it's still an offered choice, else the current default.
+    private static func validModel(_ saved: String?, in choices: [String], fallback: String) -> String {
+        guard let saved, choices.contains(saved) else { return fallback }
+        return saved
     }
 
     /// Transcription source: the OpenAI-compatible custom endpoint when that's the
@@ -218,6 +227,8 @@ final class Settings: ObservableObject {
 /// good latency/quality balance on short inline replies; Opus is available for
 /// higher quality, Haiku for cheap background style summaries.
 enum AIModels {
+    // Anthropic — current 4.x family. Sonnet balances quality/latency for short
+    // inline replies; Opus for top quality; Haiku for cheap background summaries.
     static let defaultAnthropic = "claude-sonnet-4-6"
     static let summaryAnthropic = "claude-haiku-4-5"
     static let anthropicChoices = [
@@ -226,23 +237,29 @@ enum AIModels {
         "claude-haiku-4-5",
     ]
 
-    static let defaultOpenAI = "gpt-4o"
-    static let summaryOpenAI = "gpt-4o-mini"
+    // OpenAI — GPT-5 family (gpt-4o / gpt-4o-mini are deprecated). 5.4 is the
+    // balanced default; 5.5 for top quality; 5.4-mini for speed/cost.
+    // NB: these require `max_completion_tokens` (OpenAIProvider handles that).
+    static let defaultOpenAI = "gpt-5.4"
+    static let summaryOpenAI = "gpt-5.4-mini"
     static let openAIChoices = [
-        "gpt-4o",
-        "gpt-4o-mini",
-        "gpt-4.1",
+        "gpt-5.4",
+        "gpt-5.5",
+        "gpt-5.4-mini",
     ]
 
-    // Gemini via its OpenAI-compatible endpoint. Flash is the cheap default;
-    // 2.5 models are available for higher quality.
-    static let defaultGemini = "gemini-2.0-flash"
-    static let summaryGemini = "gemini-2.0-flash"
+    // Gemini via its OpenAI-compatible endpoint. 3.5 Flash is the fast, capable
+    // default; 2.5 Pro for quality; 3.1 Flash-Lite for cheap. (2.0-flash was
+    // shut down June 2026.)
+    static let defaultGemini = "gemini-3.5-flash"
+    static let summaryGemini = "gemini-3.1-flash-lite"
     static let geminiChoices = [
-        "gemini-2.0-flash",
-        "gemini-2.5-flash",
+        "gemini-3.5-flash",
         "gemini-2.5-pro",
+        "gemini-3.1-flash-lite",
     ]
 
-    static let whisperModel = "whisper-1"
+    // OpenAI speech-to-text for dictation. gpt-4o-mini-transcribe supersedes
+    // whisper-1 (better accuracy, similar cost).
+    static let whisperModel = "gpt-4o-mini-transcribe"
 }
