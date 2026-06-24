@@ -161,6 +161,7 @@ private struct ProviderConfigCard: View {
     @State private var keyInput = ""
     @State private var savedFlash = false
     @State private var hasKey = false
+    @State private var keyPreview = ""
     @State private var testing = false
     @State private var testResult: String?
     @State private var testOK = false
@@ -192,7 +193,7 @@ private struct ProviderConfigCard: View {
                     }
                 }
                 HStack {
-                    SecureField(settings.provider.keyPlaceholder, text: $keyInput)
+                    SecureField(hasKey && !keyPreview.isEmpty ? keyPreview : settings.provider.keyPlaceholder, text: $keyInput)
                         .textFieldStyle(.roundedBorder)
                         .onSubmit(saveKey)
                     Button("Save", action: saveKey)
@@ -292,7 +293,17 @@ private struct ProviderConfigCard: View {
         keyInput = ""
         savedFlash = false
         testResult = nil
-        hasKey = KeychainStore.hasKey(for: settings.provider)
+        let existing = KeychainStore.key(for: settings.provider)
+        hasKey = existing?.isEmpty == false
+        keyPreview = existing.flatMap { $0.isEmpty ? nil : Self.masked($0) } ?? ""
+    }
+
+    /// A non-secret preview of a saved key — recognizable prefix + last 4 chars, the
+    /// secret middle hidden — so the field makes clear a key is already stored.
+    private static func masked(_ key: String) -> String {
+        let k = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard k.count >= 12 else { return String(repeating: "•", count: 8) }
+        return "\(k.prefix(6))…\(k.suffix(4))"
     }
 
     /// Make a tiny real request with the current key so a wrong/expired key (or a
@@ -328,6 +339,7 @@ private struct ProviderConfigCard: View {
         KeychainStore.setKey(trimmed, for: settings.provider)
         keyInput = ""
         hasKey = true
+        keyPreview = Self.masked(trimmed)
         savedFlash = true
     }
 }

@@ -33,10 +33,20 @@ struct OpenAIProvider: AIProvider, TranscriptionProvider {
                     // drive here (Gemini, Groq, OpenRouter, Ollama, …) still expect
                     // `max_tokens`, so pick the field by provider.
                     let useCompletionTokens = (kind == .openai)
+                    // GPT-5 and Gemini "think" before answering. For short inline
+                    // replies that's slow and can spill the model's scratchpad into the
+                    // output, so hold reasoning to the minimum. Only sent to providers
+                    // known to accept it (a custom endpoint might reject the param).
+                    let effort: String? = switch kind {
+                    case .openai: "minimal"
+                    case .gemini: "low"
+                    default: nil
+                    }
                     let body = RequestBody(
                         model: request.model,
                         maxTokens: useCompletionTokens ? nil : request.maxTokens,
                         maxCompletionTokens: useCompletionTokens ? request.maxTokens : nil,
+                        reasoningEffort: effort,
                         messages: [
                             .init(role: "system", content: request.systemPrompt),
                             .init(role: "user", content: request.userPrompt),
@@ -63,6 +73,7 @@ struct OpenAIProvider: AIProvider, TranscriptionProvider {
         // Exactly one of these is set; nil Optionals are omitted from the JSON.
         let maxTokens: Int?
         let maxCompletionTokens: Int?
+        let reasoningEffort: String?
         let stream = true
         let messages: [Message]
         struct Message: Encodable { let role: String; let content: String }

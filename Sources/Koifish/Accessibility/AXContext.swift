@@ -14,25 +14,24 @@ enum AXContext {
     /// Marker inserted at the focused element's position in the page text.
     static let cursorMarker = "⟦▮ cursor — the user is typing here⟧"
 
-    private static let maxElements = 450
     private static let maxChars = 6000
-    /// Wall-clock ceiling on the whole tree walk. Each attribute read is a
-    /// synchronous cross-process AX call; on a heavy target (a big web page, an
-    /// Electron app) 450 nodes can take *seconds*. This read runs on the main
-    /// thread, and the global hotkey event tap lives on the main run loop — so an
-    /// unbounded walk stalls not just the app but system-wide keyboard/mouse input.
-    /// Capping the time keeps any such stall short and imperceptible.
-    private static let walkBudget: CFTimeInterval = 0.12
+    // The walk's element/time caps are passed in, because the right limit depends on
+    // the caller. Each attribute read is a synchronous cross-process AX call that runs
+    // on the main thread, and the global hotkey tap lives on the main run loop — so an
+    // unbounded walk stalls system-wide input. A *user-initiated* read (pressing the
+    // hotkey) can afford a longer budget to capture a heavy page's conversation, since
+    // the user is waiting on a reply anyway; the *automatic* activity capture must stay
+    // tight so it never freezes input on a routine app switch.
 
-    static func gather(focused: AXUIElement) -> Result {
+    static func gather(focused: AXUIElement, maxElements: Int = 450, budget: CFTimeInterval = 0.12) -> Result {
         let role = copyString(focused, kAXRoleAttribute) ?? ""
         let breadcrumb = ancestorNames(of: focused)
 
         var pieces: [String] = []
         var visited = 0
-        let deadline = CFAbsoluteTimeGetCurrent() + walkBudget
+        let deadline = CFAbsoluteTimeGetCurrent() + budget
         if let window = window(of: focused) {
-            collect(window, focused: focused, into: &pieces, visited: &visited, deadline: deadline)
+            collect(window, focused: focused, into: &pieces, visited: &visited, maxElements: maxElements, deadline: deadline)
         }
         let joined = dedupedJoin(pieces)
         return Result(pageText: Self.clip(joined, marker: cursorMarker, maxChars: maxChars),
@@ -41,7 +40,7 @@ enum AXContext {
 
     // MARK: Tree walk
 
-    private static func collect(_ element: AXUIElement, focused: AXUIElement, into pieces: inout [String], visited: inout Int, deadline: CFAbsoluteTime, sender: String? = nil) {
+    private static func collect(_ element: AXUIElement, focused: AXUIElement, into pieces: inout [String], visited: inout Int, maxElements: Int, deadline: CFAbsoluteTime, sender: String? = nil) {
         guard visited < maxElements, CFAbsoluteTimeGetCurrent() < deadline else { return }
         visited += 1
 
@@ -66,7 +65,7 @@ enum AXContext {
 
         for child in children(of: element) {
             if visited >= maxElements || CFAbsoluteTimeGetCurrent() >= deadline { break }
-            collect(child, focused: focused, into: &pieces, visited: &visited, deadline: deadline, sender: sender)
+            collect(child, focused: focused, into: &pieces, visited: &visited, maxElements: maxElements, deadline: deadline, sender: sender)
         }
     }
 

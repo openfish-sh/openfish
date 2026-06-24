@@ -121,7 +121,9 @@ final class ActivityRecorder {
               app.bundleIdentifier != Bundle.main.bundleIdentifier   // never record ourselves
         else { return }
 
-        let ctx = FocusedFieldReader.read()
+        // Tight limits: this fires automatically on every app switch, so it must
+        // never stall input (unlike the user-initiated generate read).
+        let ctx = FocusedFieldReader.read(maxElements: 450, budget: 0.12)
         let raw = ctx.pageContext.isEmpty ? ctx.fieldText : ctx.pageContext
         // The cursor marker is only meaningful live, not as stored context.
         let text = raw.replacingOccurrences(of: AXContext.cursorMarker, with: " ")

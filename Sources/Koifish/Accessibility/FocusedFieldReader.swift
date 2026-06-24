@@ -33,7 +33,10 @@ struct FocusedContext: @unchecked Sendable {
 
 /// Reads the focused text element of the frontmost app via the Accessibility API.
 enum FocusedFieldReader {
-    static func read() -> FocusedContext {
+    /// Defaults are generous because the common caller is the user pressing the
+    /// hotkey — they're waiting on a reply, so a longer read to capture the full
+    /// conversation is worth it. The automatic activity capture passes tight limits.
+    static func read(maxElements: Int = 2500, budget: CFTimeInterval = 0.8) -> FocusedContext {
         let frontApp = NSWorkspace.shared.frontmostApplication
         let appName = frontApp?.localizedName ?? "the app"
         let systemWide = AXUIElementCreateSystemWide()
@@ -50,7 +53,7 @@ enum FocusedFieldReader {
         let fieldText = copyString(focused, kAXValueAttribute) ?? ""
         let selectedText = copyString(focused, kAXSelectedTextAttribute) ?? ""
         let windowTitle = focusedWindowTitle(focused)
-        let context = AXContext.gather(focused: focused)
+        let context = AXContext.gather(focused: focused, maxElements: maxElements, budget: budget)
 
         return FocusedContext(
             fieldText: fieldText,

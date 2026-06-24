@@ -45,7 +45,10 @@ enum PromptBuilder {
         write lands verbatim where the cursor is, so skip wrapping quotes or code \
         fences unless that field would genuinely contain them.
         - Output ONLY the text to insert — no preamble, no "Here is…", no commentary. \
-        Add a greeting or sign-off only if the context clearly calls for one.
+        Add a greeting or sign-off only if the context clearly calls for one. If the \
+        field already contains the user's signature or sign-off (a name, "Mvh", "Med \
+        vänlig hälsning", "Best", "/Name", etc.), do NOT write your own — give just the \
+        message body and leave their existing signature untouched.
 
         Keep it SHORT. Say the one thing that needs saying and stop. Most replies \
         are a sentence or two; match the length of what you're replying to and never \
