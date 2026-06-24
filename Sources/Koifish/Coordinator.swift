@@ -121,8 +121,11 @@ final class Coordinator {
         }
     }
 
-    /// Build the provider + key + request for the current context (config already validated).
-    private func makeRequest() -> (provider: ProviderKind, key: String, request: GenerationRequest) {
+    /// Build the provider + key + request for the current context (config already
+    /// validated). Returns the active profile's id from the *same* snapshot used to
+    /// build the prompt, so the interaction is recorded against the voice it was
+    /// written in even if the user switches profile mid-generation.
+    private func makeRequest() -> (provider: ProviderKind, key: String, request: GenerationRequest, profileID: UUID) {
         let settings = Settings.shared
         let profile = ProfileStore.shared.active
         let key = KeychainStore.key(for: settings.provider) ?? ""
@@ -131,7 +134,7 @@ final class Coordinator {
         let request = PromptBuilder.build(context: context, styleDescription: style,
                                           model: settings.activeModel, recentActivity: recentActivity,
                                           userBrief: profile.brief)
-        return (settings.provider, key, request)
+        return (settings.provider, key, request, profile.id)
     }
 
     // MARK: Activity memory (opt-in cross-window context)
@@ -153,7 +156,7 @@ final class Coordinator {
 
     private func runGenerationDirect() {
         if let problem = configProblem() { Toast.shared.show(problem); return }
-        let (provider, key, request) = makeRequest()
+        let (provider, key, request, profileID) = makeRequest()
         // Cancel any in-flight run and clear its placeholder before starting fresh.
         generationTask?.cancel()
         inline.clear()
@@ -163,7 +166,6 @@ final class Coordinator {
 
         let ai = AIProviderFactory.make(provider, baseURL: Settings.shared.activeBaseURL)
         let ctx = context
-        let profileID = ProfileStore.shared.activeID
         directGeneration &+= 1
         let gen = directGeneration
 
@@ -198,12 +200,12 @@ final class Coordinator {
             overlay.showError(problem)
             return
         }
-        let (provider, key, request) = makeRequest()
+        let (provider, key, request, profileID) = makeRequest()
         let ai = AIProviderFactory.make(provider, baseURL: Settings.shared.activeBaseURL)
 
         generationTask?.cancel()
         lastGenerated = ""
-        overlayProfileID = ProfileStore.shared.activeID
+        overlayProfileID = profileID
         overlayGeneration &+= 1
         let gen = overlayGeneration
         if showOverlayFirst { overlay.show(contextSummary: summary()) }

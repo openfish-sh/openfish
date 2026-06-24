@@ -32,6 +32,9 @@ final class ProfileStore: ObservableObject {
 
     private let defaults = UserDefaults.standard
     private static let activeKey = "activeProfileID"
+    /// Profile JSON is written here off the main thread, so editing a brief
+    /// doesn't do synchronous disk I/O on every keystroke.
+    private static let saveQueue = DispatchQueue(label: "sh.koifish.profilestore")
 
     /// The active profile (falls back to the first if the id ever dangles).
     var active: Profile { profiles.first { $0.id == activeID } ?? profiles[0] }
@@ -114,12 +117,20 @@ final class ProfileStore: ObservableObject {
 
     private func persist() {
         guard let data = try? JSONEncoder().encode(profiles) else { return }
-        try? data.write(to: AppPaths.profilesFile, options: .atomic)
+        let url = AppPaths.profilesFile
+        Self.saveQueue.async { try? data.write(to: url, options: .atomic) }
     }
 
     private static func loadProfiles() -> [Profile]? {
         guard let data = try? Data(contentsOf: AppPaths.profilesFile) else { return nil }
-        return try? JSONDecoder().decode([Profile].self, from: data)
+        if let profiles = try? JSONDecoder().decode([Profile].self, from: data) { return profiles }
+        // The file exists but won't decode. Preserve it for recovery before the
+        // caller overwrites it with a fresh Default — never silently drop the list.
+        let bak = AppPaths.profilesFile.appendingPathExtension("bak")
+        try? FileManager.default.removeItem(at: bak)
+        try? FileManager.default.moveItem(at: AppPaths.profilesFile, to: bak)
+        Log.error("profiles.json was unreadable; backed up to profiles.json.bak")
+        return nil
     }
 
     /// First-run migration: fold the old global brief/seed into a "Default" profile

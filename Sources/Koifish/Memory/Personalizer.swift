@@ -18,6 +18,10 @@ enum Personalizer {
         guard config.learningEnabled else { return }
         let provider = config.provider
         guard let apiKey = KeychainStore.key(for: provider), !apiKey.isEmpty else { return }
+        // A custom endpoint with no model set can't be called — don't fire (and log) a
+        // doomed request every refresh cycle.
+        if provider == .openAICompatible,
+           config.customModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return }
 
         let samples = InteractionLog.recent(limit: sampleWindow, dispositions: [.accepted, .edited], in: dir)
         guard samples.count >= 3 else { return } // not enough signal yet

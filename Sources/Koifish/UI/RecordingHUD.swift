@@ -99,16 +99,27 @@ final class RecordingModel: ObservableObject {
 private struct RecordingHUDView: View {
     @ObservedObject var model: RecordingModel
 
+    /// The brand fish, tinted white for the black HUD.
+    private var fishLogo: some View {
+        Image(nsImage: MenuBarIcon.fish)
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+            .frame(width: 24, height: 17)
+            .foregroundStyle(.white)
+    }
+
     var body: some View {
         Group {
             if model.isTranscribing {
                 HStack(spacing: 10) {
+                    fishLogo
                     ProgressView().controlSize(.small).tint(.white)
                     Text(model.hint).font(.callout).foregroundStyle(.white.opacity(0.85))
                 }
             } else {
                 HStack(spacing: 12) {
-                    Image(systemName: "mic.fill").foregroundStyle(.red)
+                    fishLogo
                     HStack(alignment: .center, spacing: 2) {
                         ForEach(model.levels.indices, id: \.self) { i in
                             Capsule()

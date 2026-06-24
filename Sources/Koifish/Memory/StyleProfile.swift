@@ -10,18 +10,25 @@ struct StyleProfile: Codable {
     /// When the profile was last refreshed (epoch seconds; nil if never).
     var updatedAtEpoch: Double?
 
+    /// Serializes file access so a background refresh write can't race a main-actor
+    /// read (or "Refresh now" / "Forget" running concurrently) and lose an update.
+    private static let ioQueue = DispatchQueue(label: "sh.koifish.styleprofile")
+
     /// Load the learned profile from a profile's data folder (empty if none yet).
     static func load(in dir: URL) -> StyleProfile {
         let url = dir.appendingPathComponent("style-profile.json")
-        guard let data = try? Data(contentsOf: url),
-              let profile = try? JSONDecoder().decode(StyleProfile.self, from: data)
-        else { return StyleProfile() }
-        return profile
+        return ioQueue.sync {
+            guard let data = try? Data(contentsOf: url),
+                  let profile = try? JSONDecoder().decode(StyleProfile.self, from: data)
+            else { return StyleProfile() }
+            return profile
+        }
     }
 
     func save(in dir: URL) {
         guard let data = try? JSONEncoder().encode(self) else { return }
-        try? data.write(to: dir.appendingPathComponent("style-profile.json"), options: .atomic)
+        let url = dir.appendingPathComponent("style-profile.json")
+        Self.ioQueue.sync { try? data.write(to: url, options: .atomic) }
     }
 }
 

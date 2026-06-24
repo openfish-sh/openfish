@@ -38,23 +38,16 @@ extension View {
         }
     }
 
-    /// A black-tinted Liquid Glass card (for the dictation HUD). Forces dark
-    /// content so labels/spinners read white over the black glass.
-    @ViewBuilder
+    /// A solid black card for the dictation HUD — white content (fish, soundwave,
+    /// labels) reads cleanly over it.
     func darkGlassCard(cornerRadius: CGFloat = 16) -> some View {
-        if #available(macOS 26.0, *) {
-            self.padding(16)
-                .glassEffect(.regular.tint(.black.opacity(0.7)), in: .rect(cornerRadius: cornerRadius))
-                .environment(\.colorScheme, .dark)
-        } else {
-            self.padding(16)
-                .background(.black.opacity(0.82), in: RoundedRectangle(cornerRadius: cornerRadius))
-                .overlay(
-                    RoundedRectangle(cornerRadius: cornerRadius)
-                        .strokeBorder(.white.opacity(0.12))
-                )
-                .environment(\.colorScheme, .dark)
-        }
+        self.padding(16)
+            .background(.black, in: RoundedRectangle(cornerRadius: cornerRadius))
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .strokeBorder(.white.opacity(0.14))
+            )
+            .environment(\.colorScheme, .dark)
     }
 
     /// Glass button styling on macOS 26+, bordered below.

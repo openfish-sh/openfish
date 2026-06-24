@@ -520,8 +520,10 @@ private struct StyleCards: View {
             }
             HStack {
                 Button("Refresh now") {
-                    let dir = AppPaths.profileDir(selectedID)
-                    Task { await Personalizer.refresh(in: dir); reloadLearned(); note = "Refreshed." }
+                    let id = selectedID
+                    let dir = AppPaths.profileDir(id)
+                    // Only reflect the result if the user hasn't switched profiles meanwhile.
+                    Task { await Personalizer.refresh(in: dir); if selectedID == id { reloadLearned(); note = "Refreshed." } }
                 }.glassButton()
                 Button("Forget learned style") {
                     StyleProfile().save(in: AppPaths.profileDir(selectedID)); reloadLearned(); note = "Cleared."

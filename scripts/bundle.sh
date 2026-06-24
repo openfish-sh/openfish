@@ -111,6 +111,10 @@ codesign --force \
     "$APP"
 
 if [[ "$CONFIG" == "release" && -n "$DEV_ID" ]]; then
+    # Catch any signing regression (stale inner signature, missing helper) here,
+    # before the slow round-trip to Apple's notary service.
+    echo "==> Verifying signature (deep, strict)…"
+    codesign --verify --deep --strict --verbose=2 "$APP"
     echo "    Next: ./scripts/notarize.sh  (notarize + staple, needs your Apple credentials)"
 fi
 echo "==> Done: $ROOT/$APP"

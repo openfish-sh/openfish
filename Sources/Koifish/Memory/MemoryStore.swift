@@ -44,8 +44,11 @@ final class MemoryStore {
 
         samplesSince[profileID, default: 0] += 1
         guard samplesSince[profileID, default: 0] >= refreshEvery else { return }
+        // Only reset the counter once we actually launch the refresh — otherwise a
+        // refresh already in flight (for any profile) would swallow this one and the
+        // profile would have to re-accumulate all over again.
+        guard refreshTask == nil else { return }   // a refresh is running; retry next sample
         samplesSince[profileID] = 0
-        guard refreshTask == nil else { return }   // coalesce: one refresh at a time
         refreshTask = Task(priority: .utility) { [weak self] in
             await Personalizer.refresh(in: dir)
             self?.refreshTask = nil
