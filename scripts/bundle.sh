@@ -74,7 +74,7 @@ fi
 
 if [[ "$CONFIG" == "release" && -z "$DEV_ID" ]]; then
     echo "    (no 'Developer ID Application: Ruben Flam' cert — create one for team"
-    echo "     DVKGX6LQ53 (needs paid membership) or set OPENFISH_SIGN_ID; using dev cert.)"
+    echo "     B9H6A72DF8 or set OPENFISH_SIGN_ID; using dev cert.)"
 fi
 
 # A stable identifier keeps the TCC bundle identity constant across rebuilds.

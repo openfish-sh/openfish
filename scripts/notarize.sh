@@ -5,7 +5,7 @@
 # One-time credential setup (stored securely in your login keychain):
 #   xcrun notarytool store-credentials openfish-notary \
 #       --apple-id "you@example.com" \
-#       --team-id  DVKGX6LQ53 \
+#       --team-id  B9H6A72DF8 \
 #       --password "xxxx-xxxx-xxxx-xxxx"   # an app-specific password from appleid.apple.com
 #
 # Then, after building + packaging:
