@@ -37,10 +37,15 @@ enum FocusedFieldReader {
         let frontApp = NSWorkspace.shared.frontmostApplication
         let appName = frontApp?.localizedName ?? "the app"
         let systemWide = AXUIElementCreateSystemWide()
+        // Cap how long any single AX message may block. These calls are synchronous
+        // cross-process IPC on the main thread; a wedged target app must not be able
+        // to hang us (and, via the main-run-loop event tap, system-wide input).
+        AXUIElementSetMessagingTimeout(systemWide, 0.25)
 
         guard let focused = copyElement(systemWide, kAXFocusedUIElementAttribute) else {
             return FocusedContext(fieldText: "", selectedText: "", appName: appName, windowTitle: "", element: nil, targetApp: frontApp)
         }
+        AXUIElementSetMessagingTimeout(focused, 0.25)
 
         let fieldText = copyString(focused, kAXValueAttribute) ?? ""
         let selectedText = copyString(focused, kAXSelectedTextAttribute) ?? ""

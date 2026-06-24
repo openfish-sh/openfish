@@ -16,6 +16,13 @@ enum AXContext {
 
     private static let maxElements = 450
     private static let maxChars = 6000
+    /// Wall-clock ceiling on the whole tree walk. Each attribute read is a
+    /// synchronous cross-process AX call; on a heavy target (a big web page, an
+    /// Electron app) 450 nodes can take *seconds*. This read runs on the main
+    /// thread, and the global hotkey event tap lives on the main run loop — so an
+    /// unbounded walk stalls not just the app but system-wide keyboard/mouse input.
+    /// Capping the time keeps any such stall short and imperceptible.
+    private static let walkBudget: CFTimeInterval = 0.12
 
     static func gather(focused: AXUIElement) -> Result {
         let role = copyString(focused, kAXRoleAttribute) ?? ""
@@ -23,8 +30,9 @@ enum AXContext {
 
         var pieces: [String] = []
         var visited = 0
+        let deadline = CFAbsoluteTimeGetCurrent() + walkBudget
         if let window = window(of: focused) {
-            collect(window, focused: focused, into: &pieces, visited: &visited)
+            collect(window, focused: focused, into: &pieces, visited: &visited, deadline: deadline)
         }
         let joined = dedupedJoin(pieces)
         return Result(pageText: Self.clip(joined, marker: cursorMarker, maxChars: maxChars),
@@ -33,8 +41,8 @@ enum AXContext {
 
     // MARK: Tree walk
 
-    private static func collect(_ element: AXUIElement, focused: AXUIElement, into pieces: inout [String], visited: inout Int, sender: String? = nil) {
-        guard visited < maxElements else { return }
+    private static func collect(_ element: AXUIElement, focused: AXUIElement, into pieces: inout [String], visited: inout Int, deadline: CFAbsoluteTime, sender: String? = nil) {
+        guard visited < maxElements, CFAbsoluteTimeGetCurrent() < deadline else { return }
         visited += 1
 
         if CFEqual(element, focused) {
@@ -55,8 +63,8 @@ enum AXContext {
         }
 
         for child in children(of: element) {
-            if visited >= maxElements { break }
-            collect(child, focused: focused, into: &pieces, visited: &visited, sender: sender)
+            if visited >= maxElements || CFAbsoluteTimeGetCurrent() >= deadline { break }
+            collect(child, focused: focused, into: &pieces, visited: &visited, deadline: deadline, sender: sender)
         }
     }
 
