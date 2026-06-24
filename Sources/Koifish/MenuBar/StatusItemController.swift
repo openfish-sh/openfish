@@ -11,6 +11,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let onSettings: () -> Void
     private let onOpenProfile: () -> Void
     private let onManageProfiles: () -> Void
+    private let onCheckForUpdates: () -> Void
     private let onQuit: () -> Void
 
     private var activityItem: NSMenuItem?
@@ -27,6 +28,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         onSettings: @escaping () -> Void,
         onOpenProfile: @escaping () -> Void,
         onManageProfiles: @escaping () -> Void,
+        onCheckForUpdates: @escaping () -> Void,
         onQuit: @escaping () -> Void
     ) {
         self.onGenerate = onGenerate
@@ -35,6 +37,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         self.onSettings = onSettings
         self.onOpenProfile = onOpenProfile
         self.onManageProfiles = onManageProfiles
+        self.onCheckForUpdates = onCheckForUpdates
         self.onQuit = onQuit
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
@@ -143,6 +146,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         settings.target = self
         menu.addItem(settings)
 
+        let updates = NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdatesAction), keyEquivalent: "")
+        updates.target = self
+        menu.addItem(updates)
+
         let profile = NSMenuItem(title: "Open Data Folder", action: #selector(openProfileAction), keyEquivalent: "")
         profile.target = self
         menu.addItem(profile)
@@ -160,6 +167,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     @objc private func dictateAction() { onDictate() }
     @objc private func toggleActivityAction() { onToggleActivity() }
     @objc private func settingsAction() { onSettings() }
+    @objc private func checkForUpdatesAction() { onCheckForUpdates() }
     @objc private func openProfileAction() { onOpenProfile() }
     @objc private func quitAction() { onQuit() }
 

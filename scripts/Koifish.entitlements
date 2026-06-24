@@ -5,6 +5,11 @@
     <!-- Microphone for hold-to-talk transcription. -->
     <key>com.apple.security.device.audio-input</key>
     <true/>
+    <!-- Allow loading the embedded Sparkle.framework under the hardened runtime.
+         The dev build is self-signed (no Team ID), so library validation would
+         otherwise reject Sparkle's signature. Notarization permits this entitlement. -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
     <!-- App is NOT sandboxed: it needs the Accessibility API to read/insert text
          in arbitrary apps and a CGEventTap for the global hotkey. The macOS sandbox
          forbids both, so Koifish runs unsandboxed (like the original). -->

@@ -43,6 +43,16 @@ else
     echo "    (no Resources/AppIcon.icns — run scripts/make_icon.sh to generate one)"
 fi
 
+# Embed Sparkle.framework (auto-updates) and add the rpath so the binary finds it.
+SPARKLE_FW=".build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
+if [[ -d "$SPARKLE_FW" ]]; then
+    mkdir -p "$APP/Contents/Frameworks"
+    ditto "$SPARKLE_FW" "$APP/Contents/Frameworks/Sparkle.framework"
+    install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/MacOS/Koifish" 2>/dev/null || true
+else
+    echo "    (Sparkle.framework not found — run 'swift build' first so auto-updates work)"
+fi
+
 # Pick a signing identity:
 #  - release: a "Developer ID Application" cert (distributable + notarizable), with a
 #    secure timestamp. Falls back to the dev cert if none is installed.
@@ -77,8 +87,23 @@ if [[ "$CONFIG" == "release" && -z "$DEV_ID" ]]; then
     echo "     B9H6A72DF8 or set OPENFISH_SIGN_ID; using dev cert.)"
 fi
 
-# A stable identifier keeps the TCC bundle identity constant across rebuilds.
-codesign --force --deep \
+# Sign inside-out: Sparkle's helpers + framework first, then the app (no --deep,
+# since the framework is already signed). A stable identifier keeps the TCC bundle
+# identity constant across rebuilds.
+SPARKLE_DIR="$APP/Contents/Frameworks/Sparkle.framework"
+if [[ -d "$SPARKLE_DIR" ]]; then
+    for comp in \
+        "Versions/B/XPCServices/Downloader.xpc" \
+        "Versions/B/XPCServices/Installer.xpc" \
+        "Versions/B/Autoupdate" \
+        "Versions/B/Updater.app"; do
+        [[ -e "$SPARKLE_DIR/$comp" ]] && \
+            codesign --force --sign "$SIGN_ARG" --options runtime $TIMESTAMP_ARG "$SPARKLE_DIR/$comp"
+    done
+    codesign --force --sign "$SIGN_ARG" --options runtime $TIMESTAMP_ARG "$SPARKLE_DIR"
+fi
+
+codesign --force \
     --sign "$SIGN_ARG" \
     --identifier "$APP_ID" \
     --entitlements "scripts/Koifish.entitlements" \

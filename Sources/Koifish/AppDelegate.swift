@@ -6,6 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItemController: StatusItemController!
     private(set) var coordinator: Coordinator!
     private var settingsWindowController: SettingsWindowController?
+    private var updater: Updater!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Log.info("Openfish launching (v\(Bundle.main.shortVersion))")
@@ -17,6 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         installMainMenu()
 
         coordinator = Coordinator()
+        updater = Updater()
 
         statusItemController = StatusItemController(
             onGenerate: { [weak self] in self?.coordinator.triggerGeneration() },
@@ -25,6 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onSettings: { [weak self] in self?.showSettings() },
             onOpenProfile: { [weak self] in self?.coordinator.revealDataFolder() },
             onManageProfiles: { [weak self] in self?.showSettings(tab: .style) },
+            onCheckForUpdates: { [weak self] in self?.updater.checkForUpdates() },
             onQuit: { NSApp.terminate(nil) }
         )
 
