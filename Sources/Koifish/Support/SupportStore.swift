@@ -5,8 +5,8 @@ import Combine
 /// Homebrew, so this is an honest "pay if you can" purchase — never a gate. Set the
 /// checkout URL to the live Polar.sh link once the one-time product is created.
 enum SupportLinks {
-    /// Polar.sh one-time ($19) checkout. TODO: replace with the live checkout link.
-    static let checkout = URL(string: "https://polar.sh/openfish")!   // PLACEHOLDER
+    /// Polar.sh one-time ($19) checkout for the "Openfish — Lifetime" product.
+    static let checkout = URL(string: "https://buy.polar.sh/polar_cl_veuljrMLHBNDAvK7d2qqYlqjOl9HyVvrCgYZ82j3L9R")!
     static let price = "$19"
 }
 
