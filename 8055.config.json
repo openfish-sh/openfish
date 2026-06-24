@@ -1,107 +1,284 @@
 {
-  "name": "koifish — first cut, refining…",
-  "product": "koifish — first cut, refining…",
+  "name": "Openfish (Koifish) — a macOS menu-bar AI that, on a keypress, reads the field you're standing in and the visible thread, drafts a reply in your own voice with your own API key, and drops it at the cursor; hold a key to dictate. Local-first, BYOK, no backend, no telemetry.",
+  "product": "Openfish (Koifish) — a macOS menu-bar AI that, on a keypress, reads the field you're standing in and the visible thread, drafts a reply in your own voice with your own API key, and drops it at the cursor; hold a key to dictate. Local-first, BYOK, no backend, no telemetry.",
   "tagline": "",
   "mapConfig": "./onboard/koifish/map.config.mjs",
   "boxes": [
     {
-      "id": "Sources",
-      "name": "Sources",
-      "sub": "Sources/",
-      "district": "core",
-      "responds": "",
+      "id": "hotkey",
+      "name": "Hotkey Listener",
+      "sub": "listens for your trigger key",
+      "district": "edge",
+      "responds": "Tap/hold trigger doesn't fire, fires on the wrong key, or won't re-arm after a rebind — check the global event tap and the modifier-tap detector.",
       "paths": [
-        "Sources"
+        "Sources/Koifish/Hotkey/"
       ]
     },
     {
-      "id": "scripts",
-      "name": "Scripts",
-      "sub": "scripts/",
-      "district": "support",
-      "responds": "",
+      "id": "field-reader",
+      "name": "Focused-Field & Context Reader",
+      "sub": "reads where your cursor is",
+      "district": "edge",
+      "responds": "Reads an empty field or the wrong thread, or Accessibility isn't detected as granted so it's blind — check AX reads, breadcrumb/page-context extraction, and the trust gate.",
       "paths": [
-        "scripts"
+        "Sources/Koifish/Accessibility/AXContext.swift",
+        "Sources/Koifish/Accessibility/AXText.swift",
+        "Sources/Koifish/Accessibility/FocusedFieldReader.swift",
+        "Sources/Koifish/Accessibility/AXPermissions.swift"
       ]
     },
     {
-      "id": "Tests",
-      "name": "Tests",
-      "sub": "Tests/",
-      "district": "core",
-      "responds": "",
+      "id": "voice-capture",
+      "name": "Microphone Capture",
+      "sub": "records what you say",
+      "district": "edge",
+      "responds": "Dictation captures no audio, mic permission is denied, or the live level meter is dead — check AVAudioEngine recording and mic TCC.",
       "paths": [
-        "Tests"
+        "Sources/Koifish/Voice/"
       ]
     },
     {
-      "id": "Resources",
-      "name": "Resources",
-      "sub": "Resources/",
+      "id": "core-loop",
+      "name": "Core Loop",
+      "sub": "runs the whole reply flow",
       "district": "core",
-      "responds": "",
+      "responds": "A trigger produces nothing end-to-end, generations don't supersede/cancel correctly, accept/reject records against the wrong profile, or app lifecycle/menu wiring breaks — check the orchestrator.",
       "paths": [
-        "Resources"
+        "Sources/Koifish/Coordinator.swift",
+        "Sources/Koifish/AppDelegate.swift",
+        "Sources/Koifish/KoifishApp.swift"
       ]
     },
     {
-      "id": ".github",
-      "name": ".Github",
-      "sub": ".github/",
+      "id": "prompt",
+      "name": "Prompt Builder",
+      "sub": "writes the instructions for the model",
       "district": "core",
-      "responds": "",
+      "responds": "Replies are off-voice, ignore the thread/context, or come out the wrong length or format — check prompt assembly and what (style, recent activity, brief) gets injected.",
       "paths": [
-        ".github"
+        "Sources/Koifish/AI/PromptBuilder.swift"
+      ]
+    },
+    {
+      "id": "providers",
+      "name": "AI Providers",
+      "sub": "asks your chosen AI",
+      "district": "core",
+      "responds": "Generation or transcription fails — 401/429/network, broken SSE streaming, wrong endpoint or model id — check provider wiring, the request transport, and the key/base-URL.",
+      "paths": [
+        "Sources/Koifish/AI/AIProvider.swift",
+        "Sources/Koifish/AI/AnthropicProvider.swift",
+        "Sources/Koifish/AI/OpenAIProvider.swift",
+        "Sources/Koifish/AI/StreamingHTTP.swift",
+        "Sources/Koifish/AI/OnDeviceModel.swift"
+      ]
+    },
+    {
+      "id": "style-learning",
+      "name": "Style Learning",
+      "sub": "learns how you write",
+      "district": "memory",
+      "responds": "Replies stop sounding like the user, kept/edited drafts aren't learned, or the interaction log grows unbounded — check the per-profile refresh pipeline and the bounded log.",
+      "paths": [
+        "Sources/Koifish/Memory/MemoryStore.swift",
+        "Sources/Koifish/Memory/Personalizer.swift",
+        "Sources/Koifish/Memory/StyleProfile.swift",
+        "Sources/Koifish/Memory/InteractionLog.swift"
+      ]
+    },
+    {
+      "id": "profiles",
+      "name": "Profiles & Brief",
+      "sub": "switches between your personas",
+      "district": "memory",
+      "responds": "The wrong persona is active, switching a profile doesn't take effect, or the user brief isn't injected/decoded — check the profile store and brief encoding.",
+      "paths": [
+        "Sources/Koifish/Memory/ProfileStore.swift",
+        "Sources/Koifish/Memory/UserBrief.swift"
+      ]
+    },
+    {
+      "id": "activity-memory",
+      "name": "Activity Memory",
+      "sub": "remembers your other windows",
+      "district": "memory",
+      "responds": "Cross-window context is stale/missing, the buffer won't clear when turned off, or it captures something it shouldn't (secure fields, own windows) — check the opt-in activity buffer and its watching indicator.",
+      "paths": [
+        "Sources/Koifish/Memory/ActivityMemory.swift",
+        "Sources/Koifish/Memory/EntityExtractor.swift"
+      ]
+    },
+    {
+      "id": "text-inserter",
+      "name": "Text Inserter",
+      "sub": "types the reply at your cursor",
+      "district": "surfaces",
+      "responds": "The reply lands in the wrong place, gets garbled by autocorrect, or nothing is inserted (dropped synthesized keystrokes / backspace drift) — check the paste/keystroke insertion path.",
+      "paths": [
+        "Sources/Koifish/Accessibility/TextInserter.swift",
+        "Sources/Koifish/Accessibility/KeyboardSynth.swift"
+      ]
+    },
+    {
+      "id": "reply-overlay",
+      "name": "Draft Surfaces",
+      "sub": "shows you the draft",
+      "district": "surfaces",
+      "responds": "The review panel / inline placeholder / dictation HUD won't show, streamed text doesn't render, or errors never surface as a toast — check the transient draft surfaces.",
+      "paths": [
+        "Sources/Koifish/UI/ReplyOverlay.swift",
+        "Sources/Koifish/UI/InlineComposer.swift",
+        "Sources/Koifish/UI/RecordingHUD.swift",
+        "Sources/Koifish/UI/Toast.swift",
+        "Sources/Koifish/UI/Glass.swift"
+      ]
+    },
+    {
+      "id": "menu-bar",
+      "name": "Menu-Bar Status Item",
+      "sub": "the fish you click",
+      "district": "surfaces",
+      "responds": "The status item is missing, its menu actions are dead, or the fish shows the wrong state (recording / thinking / watching) — check the status item and icon renderer.",
+      "paths": [
+        "Sources/Koifish/MenuBar/"
+      ]
+    },
+    {
+      "id": "settings-ui",
+      "name": "Settings Window",
+      "sub": "where you set it up",
+      "district": "surfaces",
+      "responds": "Settings won't open, a provider/key/hotkey can't be entered or doesn't apply on save, or the Accessibility permission banner is wrong — check the settings window.",
+      "paths": [
+        "Sources/Koifish/Settings/SettingsView.swift",
+        "Sources/Koifish/Settings/SettingsWindowController.swift"
+      ]
+    },
+    {
+      "id": "secrets",
+      "name": "Keychain / API Keys",
+      "sub": "guards your API keys",
+      "district": "foundation",
+      "responds": "An API key won't save or load, or the Keychain prompts in a loop / denies access — check the Keychain store.",
+      "paths": [
+        "Sources/Koifish/Settings/KeychainStore.swift"
+      ]
+    },
+    {
+      "id": "config",
+      "name": "Config & Data Storage",
+      "sub": "remembers your preferences",
+      "district": "foundation",
+      "responds": "A preference doesn't persist, the data/profile folder resolves wrong, or logs are missing for diagnosis — check UserDefaults config, AppPaths, and logging.",
+      "paths": [
+        "Sources/Koifish/Settings/Settings.swift",
+        "Sources/Koifish/Support/"
       ]
     }
   ],
   "districts": [
     {
-      "id": "core",
-      "name": "Core"
+      "id": "edge",
+      "name": "Capture & Triggers"
     },
     {
-      "id": "support",
-      "name": "Support"
+      "id": "core",
+      "name": "Orchestration & Generation"
+    },
+    {
+      "id": "memory",
+      "name": "Memory & Personalization"
+    },
+    {
+      "id": "surfaces",
+      "name": "Delivery & Surfaces"
+    },
+    {
+      "id": "foundation",
+      "name": "Config & Secrets"
     }
   ],
   "lenses": {
     "journey": {
       "districts": [
         {
-          "id": "core",
-          "name": "Core"
+          "id": "invoke",
+          "name": "INVOKE — summon it anywhere"
         },
         {
-          "id": "support",
-          "name": "Support"
+          "id": "understand",
+          "name": "UNDERSTAND — read the situation"
+        },
+        {
+          "id": "voice",
+          "name": "VOICE — draft as you would"
+        },
+        {
+          "id": "place",
+          "name": "PLACE — put it at the cursor"
+        },
+        {
+          "id": "trust",
+          "name": "STAY YOURS — keys, privacy, control"
         }
       ],
       "home": {
-        "Sources": "core",
-        "scripts": "support",
-        "Tests": "core",
-        "Resources": "core",
-        ".github": "core"
+        "hotkey": "invoke",
+        "menu-bar": "invoke",
+        "field-reader": "understand",
+        "voice-capture": "understand",
+        "activity-memory": "understand",
+        "core-loop": "voice",
+        "prompt": "voice",
+        "providers": "voice",
+        "style-learning": "voice",
+        "profiles": "voice",
+        "text-inserter": "place",
+        "reply-overlay": "place",
+        "settings-ui": "trust",
+        "secrets": "trust",
+        "config": "trust"
       }
     },
     "team": {
       "districts": [
         {
-          "id": "core",
-          "name": "Core"
+          "id": "input-platform",
+          "name": "Input Platform (macOS integration)"
         },
         {
-          "id": "support",
-          "name": "Support"
+          "id": "ai-gen",
+          "name": "AI / Generation"
+        },
+        {
+          "id": "memory",
+          "name": "Memory & Personalization"
+        },
+        {
+          "id": "experience",
+          "name": "App Experience"
+        },
+        {
+          "id": "platform-sec",
+          "name": "Platform & Security"
         }
       ],
       "home": {
-        "Sources": "core",
-        "scripts": "support",
-        "Tests": "core",
-        "Resources": "core",
-        ".github": "core"
+        "hotkey": "input-platform",
+        "field-reader": "input-platform",
+        "voice-capture": "input-platform",
+        "text-inserter": "input-platform",
+        "core-loop": "ai-gen",
+        "prompt": "ai-gen",
+        "providers": "ai-gen",
+        "style-learning": "memory",
+        "profiles": "memory",
+        "activity-memory": "memory",
+        "reply-overlay": "experience",
+        "menu-bar": "experience",
+        "settings-ui": "experience",
+        "secrets": "platform-sec",
+        "config": "platform-sec"
       }
     }
   }

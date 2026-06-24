@@ -48,6 +48,9 @@ Or grab `Openfish.dmg` from [Releases](https://github.com/openfish-sh/openfish/r
 - **Hold → dictate.** Live waveform, Whisper transcription, text at the cursor.
 - **Learns you.** Every reply you keep quietly sharpens a local style profile.
   No cloud, no training on you-the-product.
+- **Profiles.** Keep several personalities — Personal, Work — Sales, Internal comms —
+  each with its own About-you brief, voice, and separately-learned style. Switch the
+  active one from the menu-bar fish (Profile ▸), or manage them in Settings → Style.
 - **Your keys, four ways.** Claude · OpenAI · Gemini · anything OpenAI-compatible
   (Groq, OpenRouter, Ollama, LM Studio). Keychain only.
 - **Menu-bar only.** No Dock clutter, one instance, out of your way.
@@ -71,5 +74,4 @@ fields are invisible to it by design. There's no backend, so there's nothing to 
 
 ## License
 
-MIT — see [LICENSE](LICENSE). All code is original, held to a strict best-practice
-bar (see [CONTRIBUTING.md](CONTRIBUTING.md)). Built as a student research project.
+MIT — see [LICENSE](LICENSE). All code is original. Built as a student research project.
