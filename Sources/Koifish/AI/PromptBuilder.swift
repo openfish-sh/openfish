@@ -11,16 +11,17 @@ enum PromptBuilder {
         styleDescription: String,
         model: String,
         recentActivity: String = "",
-        userBrief: String = ""
+        userBrief: String = "",
+        selfName: String = ""
     ) -> GenerationRequest {
         GenerationRequest(
-            systemPrompt: systemPrompt(styleDescription: styleDescription, userBrief: userBrief),
+            systemPrompt: systemPrompt(styleDescription: styleDescription, userBrief: userBrief, selfName: selfName),
             userPrompt: userPrompt(context: context, recentActivity: recentActivity),
             model: model
         )
     }
 
-    private static func systemPrompt(styleDescription: String, userBrief: String) -> String {
+    private static func systemPrompt(styleDescription: String, userBrief: String, selfName: String) -> String {
         var s = """
         You generate the exact text the user should type next, to be inserted at \
         their cursor. You are writing as the user, in their voice.
@@ -72,6 +73,16 @@ enum PromptBuilder {
         if !brief.isEmpty {
             s += "\n\n" + brief
         }
+        let name = selfName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !name.isEmpty {
+            s += "\n\nYou are writing as \(name)."
+        }
+        // The user's own earlier messages in THIS conversation are the best guide to how
+        // they write here — and they're already in the captured context (the "Me:" lines,
+        // or, in email etc., messages from the name above). Point the model at those
+        // instead of re-sending them: costs one sentence, not duplicated tokens.
+        let whose = name.isEmpty ? "the user's own" : "\(name)'s"
+        s += "\n\nWhen \(whose) earlier messages are visible in the conversation, mirror that voice closely — length, greeting, sign-off, formality, punctuation, emoji. That's the truest guide to how they write here; prefer it over any general style note."
         let trimmed = styleDescription.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty {
             s += "\n\nThe user's writing style (mirror it):\n\(trimmed)"

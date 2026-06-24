@@ -133,8 +133,16 @@ final class Coordinator {
         let recentActivity = activity.recentDigest(excludingApp: context.appName, excludingWindow: context.windowTitle)
         let request = PromptBuilder.build(context: context, styleDescription: style,
                                           model: settings.activeModel, recentActivity: recentActivity,
-                                          userBrief: profile.brief)
+                                          userBrief: profile.brief, selfName: Self.selfDisplayName())
         return (settings.provider, key, request, profile.id)
+    }
+
+    /// The user's name for the prompt (so the model can spot their own messages in a
+    /// thread), or "" when the system only has a short login name — don't tell the
+    /// model "you are writing as openclaw".
+    private static func selfDisplayName() -> String {
+        let full = NSFullUserName()
+        return (full != NSUserName() && full.contains(where: \.isLetter)) ? full : ""
     }
 
     // MARK: Activity memory (opt-in cross-window context)
