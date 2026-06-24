@@ -12,16 +12,17 @@ enum PromptBuilder {
         model: String,
         recentActivity: String = "",
         userBrief: String = "",
-        selfName: String = ""
+        selfName: String = "",
+        selfAliases: [String] = []
     ) -> GenerationRequest {
         GenerationRequest(
-            systemPrompt: systemPrompt(styleDescription: styleDescription, userBrief: userBrief, selfName: selfName),
+            systemPrompt: systemPrompt(styleDescription: styleDescription, userBrief: userBrief, selfName: selfName, selfAliases: selfAliases),
             userPrompt: userPrompt(context: context, recentActivity: recentActivity),
             model: model
         )
     }
 
-    private static func systemPrompt(styleDescription: String, userBrief: String, selfName: String) -> String {
+    private static func systemPrompt(styleDescription: String, userBrief: String, selfName: String, selfAliases: [String]) -> String {
         var s = """
         You generate the exact text the user should type next, to be inserted at \
         their cursor. You are writing as the user, in their voice.
@@ -75,7 +76,14 @@ enum PromptBuilder {
         }
         let name = selfName.trimmingCharacters(in: .whitespacesAndNewlines)
         if !name.isEmpty {
-            s += "\n\nYou are writing as \(name)."
+            var identity = "You are writing as \(name)."
+            let aliases = selfAliases
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            if !aliases.isEmpty {
+                identity += " In conversations you may also appear as \(aliases.joined(separator: ", ")) — messages under any of those names are your own, so treat them as you."
+            }
+            s += "\n\n" + identity
         }
         // The user's own earlier messages in THIS conversation are the best guide to how
         // they write here — and they're already in the captured context (the "Me:" lines,

@@ -98,6 +98,36 @@ final class PromptBuilderTests: XCTestCase {
         let r = PromptBuilder.build(context: ctx(field: "x"), styleDescription: "", model: "m")
         XCTAssertFalse(r.systemPrompt.contains("writing style"))
     }
+
+    func testSelfNameStatesTheWriter() {
+        let r = PromptBuilder.build(context: ctx(), styleDescription: "", model: "m", selfName: "Ruben Flam")
+        XCTAssertTrue(r.systemPrompt.contains("writing as Ruben Flam"))
+    }
+
+    func testNoSelfNameDoesNotClaimAWriter() {
+        // The base prompt always says "writing as the user"; a set name adds a
+        // second, specific "writing as <Name>" line. No name → no specific claim.
+        let withName = PromptBuilder.build(context: ctx(), styleDescription: "", model: "m", selfName: "Ruben Flam")
+        let without = PromptBuilder.build(context: ctx(), styleDescription: "", model: "m", selfName: "")
+        XCTAssertTrue(withName.systemPrompt.contains("writing as Ruben Flam"))
+        XCTAssertFalse(without.systemPrompt.contains("writing as Ruben Flam"))
+    }
+
+    func testAliasesAreListedAsTheUser() {
+        let r = PromptBuilder.build(context: ctx(), styleDescription: "", model: "m",
+                                    selfName: "Ruben Flam", selfAliases: ["Rubke", "R.F."])
+        XCTAssertTrue(r.systemPrompt.contains("Rubke"))
+        XCTAssertTrue(r.systemPrompt.contains("R.F."))
+        XCTAssertTrue(r.systemPrompt.lowercased().contains("your own"))
+    }
+
+    func testAliasesIgnoredWithoutAName() {
+        // Aliases only make sense as "also you" — without a primary name there's no
+        // anchor, so the identity line shouldn't appear at all.
+        let r = PromptBuilder.build(context: ctx(), styleDescription: "", model: "m",
+                                    selfName: "", selfAliases: ["Rubke"])
+        XCTAssertFalse(r.systemPrompt.contains("Rubke"))
+    }
 }
 
 final class CodableModelTests: XCTestCase {

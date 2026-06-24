@@ -544,6 +544,7 @@ private struct StyleCards: View {
 
     var body: some View {
         VStack(spacing: 14) {
+            identityCard
             profilesCard
             aboutYouCard
             voiceCard
@@ -551,6 +552,23 @@ private struct StyleCards: View {
         }
         .onAppear(perform: reloadLearned)
         .onChange(of: selectedID) { _, _ in note = ""; reloadLearned() }
+    }
+
+    private var identityCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Your name").font(.headline)
+            Text("Who's doing the writing. Lets Openfish spot your own messages in any app's thread — Messages, Mail, Slack, anywhere — and mirror that voice. Stays on your Mac.")
+                .font(.caption).foregroundStyle(.secondary)
+            TextField(Settings.osFullName.isEmpty ? "Your name" : Settings.osFullName,
+                      text: $settings.selfName)
+                .textFieldStyle(.roundedBorder)
+            TextField("Other names you go by — comma-separated (e.g. Rubke, R.F.)",
+                      text: $settings.selfAliases)
+                .textFieldStyle(.roundedBorder)
+            Text("Aliases are optional — add the handles or nicknames you show up as in different apps.")
+                .font(.caption2).foregroundStyle(.secondary)
+        }
+        .glassCard()
     }
 
     private var profilesCard: some View {

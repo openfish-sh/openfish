@@ -148,6 +148,16 @@ final class Settings: ObservableObject {
     @Published var voiceLanguage: String {
         didSet { defaults.set(voiceLanguage, forKey: Keys.voiceLanguage) }
     }
+    /// The writer's display name. Lets the model spot the user's own messages in any
+    /// app's thread and mirror that voice. Empty → fall back to the OS account name.
+    @Published var selfName: String {
+        didSet { defaults.set(selfName, forKey: Keys.selfName) }
+    }
+    /// Other names the user appears under across apps (handles, nicknames),
+    /// comma-separated — so a message under any of them still reads as the user's own.
+    @Published var selfAliases: String {
+        didSet { defaults.set(selfAliases, forKey: Keys.selfAliases) }
+    }
 
     private init() {
         provider = ProviderKind(rawValue: defaults.string(forKey: Keys.provider) ?? "") ?? .anthropic
@@ -166,6 +176,29 @@ final class Settings: ObservableObject {
         activityMemoryEnabled = defaults.object(forKey: Keys.activityMemoryEnabled) as? Bool ?? false
         voiceModel = defaults.string(forKey: Keys.voiceModel) ?? ""
         voiceLanguage = defaults.string(forKey: Keys.voiceLanguage) ?? ""
+        selfName = defaults.string(forKey: Keys.selfName) ?? ""
+        selfAliases = defaults.string(forKey: Keys.selfAliases) ?? ""
+    }
+
+    /// The OS account's real name, or "" when the account only has a short login
+    /// handle (don't tell the model "you are writing as openclaw").
+    static var osFullName: String {
+        let full = NSFullUserName()
+        return (full != NSUserName() && full.contains(where: \.isLetter)) ? full : ""
+    }
+
+    /// The writer's name for prompts: the user-set name, else the OS account name.
+    var effectiveSelfName: String {
+        let set = selfName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return set.isEmpty ? Self.osFullName : set
+    }
+
+    /// Alternate names the user goes by, parsed from the comma-separated field.
+    var selfAliasList: [String] {
+        selfAliases
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
     }
 
     /// A saved model id if it's still an offered choice, else the current default.
@@ -220,6 +253,8 @@ final class Settings: ObservableObject {
         static let activityMemoryEnabled = "activityMemoryEnabled"
         static let voiceModel = "voiceModel"
         static let voiceLanguage = "voiceLanguage"
+        static let selfName = "selfName"
+        static let selfAliases = "selfAliases"
     }
 }
 
