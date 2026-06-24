@@ -1,0 +1,14 @@
+<?xml version="1.0" standalone="yes"?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>Openfish</title>
+        <item>
+            <title>0.1.2</title>
+            <pubDate>Wed, 24 Jun 2026 12:43:55 +0200</pubDate>
+            <sparkle:version>3</sparkle:version>
+            <sparkle:shortVersionString>0.1.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/openfish-sh/openfish/releases/download/v0.1.2/Openfish.dmg" length="2549096" type="application/octet-stream" sparkle:edSignature="BhdekA9sL90ZvhLgy8LQ54ZC+6YbTsse8KCJXjzdmiQiqqKk+WjUuQwjyzoqk+GJg/7uqG/G4xxU8QcedSrwBw=="/>
+        </item>
+    </channel>
+</rss>
