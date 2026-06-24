@@ -161,6 +161,9 @@ private struct ProviderConfigCard: View {
     @State private var keyInput = ""
     @State private var savedFlash = false
     @State private var hasKey = false
+    @State private var testing = false
+    @State private var testResult: String?
+    @State private var testOK = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -195,8 +198,19 @@ private struct ProviderConfigCard: View {
                     Button("Save", action: saveKey)
                         .glassButton()
                         .disabled(keyInput.trimmingCharacters(in: .whitespaces).isEmpty)
+                    Button("Test", action: testKey)
+                        .glassButton()
+                        .disabled(testing)
                 }
                 statusLine
+                if testing {
+                    Label("Testing the connection…", systemImage: "ellipsis.circle")
+                        .font(.caption).foregroundStyle(.secondary)
+                } else if let testResult {
+                    Label(testResult, systemImage: testOK ? "checkmark.seal.fill" : "xmark.octagon.fill")
+                        .font(.caption).foregroundStyle(testOK ? .green : .red)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
 
             Divider().opacity(0.3)
@@ -265,16 +279,47 @@ private struct ProviderConfigCard: View {
                 Button("Remove") { KeychainStore.deleteKey(for: settings.provider); refresh() }
                     .buttonStyle(.link).font(.caption)
             }
-        } else {
+        } else if settings.provider.requiresKey {
             Label("No key yet — paste one above to start", systemImage: "exclamationmark.circle")
                 .foregroundStyle(.orange).font(.caption)
+        } else {
+            Label("Optional — local endpoints (Ollama, LM Studio) need no key.", systemImage: "info.circle")
+                .foregroundStyle(.secondary).font(.caption)
         }
     }
 
     private func refresh() {
         keyInput = ""
         savedFlash = false
+        testResult = nil
         hasKey = KeychainStore.hasKey(for: settings.provider)
+    }
+
+    /// Make a tiny real request with the current key so a wrong/expired key (or a
+    /// bad endpoint/model) is caught here, not silently at generation time.
+    private func testKey() {
+        testResult = nil
+        testing = true
+        let provider = settings.provider
+        let typed = keyInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        let key = typed.isEmpty ? (KeychainStore.key(for: provider) ?? "") : typed
+        let baseURL = settings.activeBaseURL
+        let model = settings.activeModel
+        Task {
+            let ai = AIProviderFactory.make(provider, baseURL: baseURL)
+            let req = GenerationRequest(
+                systemPrompt: "You are a connection test.",
+                userPrompt: "Reply with the single word OK.",
+                model: model, maxTokens: 16
+            )
+            do {
+                _ = try await ai.complete(req, apiKey: key)
+                testing = false; testOK = true; testResult = "Connection works ✓"
+            } catch {
+                testing = false; testOK = false
+                testResult = (error as? AIError)?.errorDescription ?? error.localizedDescription
+            }
+        }
     }
 
     private func saveKey() {
@@ -309,7 +354,7 @@ private struct BehaviorCard: View {
             Divider().opacity(0.3)
 
             HStack {
-                Text("Generate key").font(.subheadline).bold()
+                Text("Generate key (tap)").font(.subheadline).bold()
                 Spacer()
                 keyPicker(generateKey)
             }
@@ -326,6 +371,11 @@ private struct BehaviorCard: View {
 
             Text("Tap a modifier on its own to trigger (so ⌥e for accents still works). Dictation \u{201C}Tap\u{201D} toggles on/off; \u{201C}Hold\u{201D} records only while held. For Fn, set System Settings → Keyboard → \u{201C}Press 🌐 key to\u{201D} → Do Nothing.")
                 .font(.caption).foregroundStyle(.secondary)
+            if key(of: settings.generateHotkey, fallback: .rightOption) == key(of: settings.dictateHotkey, fallback: .fn) {
+                Label("Generate and Dictate are on the same key, so Dictate is turned off. Pick different keys.", systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption).foregroundStyle(.orange)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
         .glassCard()
     }
@@ -390,6 +440,14 @@ private struct VoiceCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Voice").font(.headline)
+            // Dictation transcribes through OpenAI Whisper unless a Custom endpoint is
+            // active, so Claude/Gemini users need an OpenAI key specifically. Surface
+            // that here instead of failing silently the first time they dictate.
+            if settings.provider != .openAICompatible, !KeychainStore.hasKey(for: .openai) {
+                Label("Dictation transcribes via OpenAI — add an OpenAI key (switch the provider above to OpenAI to paste one).", systemImage: "exclamationmark.circle")
+                    .font(.caption).foregroundStyle(.orange)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
             HStack {
                 Text("Transcription model").font(.subheadline).bold()
                 Spacer()
