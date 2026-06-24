@@ -23,7 +23,7 @@ final class InlineComposer {
     private var pendingRestore: DispatchWorkItem?
 
     /// Static, un-animated placeholder. Fixed length → exact deletion count.
-    private static let placeholder = "(hang on...)"
+    private static let placeholder = "(gone fishing...)"
 
     func begin() {
         guard !isActive else { return }
