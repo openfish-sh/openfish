@@ -49,7 +49,9 @@ struct OpenAIProvider: AIProvider, TranscriptionProvider {
                     req.httpBody = try encoder.encode(body)
 
                     try await StreamingHTTP.stream(req) { payload in
-                        if let text = Self.textDelta(fromSSE: payload) { continuation.yield(text) }
+                        guard let text = Self.textDelta(fromSSE: payload) else { return false }
+                        continuation.yield(text)
+                        return true
                     }
                     continuation.finish()
                 } catch {
