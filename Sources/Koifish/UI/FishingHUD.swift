@@ -56,7 +56,9 @@ final class FishingHUD {
 private struct FishingView: View {
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: "fish.fill").foregroundStyle(.secondary)
+            Image(systemName: "fish.fill")
+                .scaleEffect(x: 1, y: -1)   // belly-up — the "dead fish"
+                .foregroundStyle(.secondary)
             Text("(gone fishing...)").font(.callout).foregroundStyle(.secondary)
         }
         .padding(.horizontal, 14)
