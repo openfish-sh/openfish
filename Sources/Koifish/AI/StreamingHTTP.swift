@@ -4,62 +4,72 @@ import Foundation
 /// the status (reading the body for a useful error), then invokes `onData` for
 /// each SSE `data:` payload until the stream ends.
 ///
-/// Transient failures (HTTP 429 / 5xx, or a network blip) get **one** automatic
-/// retry with a short backoff before surfacing — but only during the connect /
-/// status phase, never once we've started yielding data.
+/// Transient failures — HTTP 429 / 5xx, or a network blip — get a bounded number
+/// of automatic retries with a short backoff. A retry re-sends the request from
+/// scratch, so it is only safe **until the consumer commits to visible output**:
+/// `onData` returns `true` the first time it yields real text, and from that point
+/// a blip surfaces instead of restarting (re-sending would duplicate text the user
+/// already saw). The retry window therefore spans the whole *silent* warm-up —
+/// TCP/TLS connect, the HTTP status, and the provider's pre-text SSE events
+/// (`message_start`, `ping`, `content_block_start`, …) — which is exactly where
+/// brief blips cluster, so one shouldn't cost the reply.
 enum StreamingHTTP {
-    /// Number of automatic retries on a transient failure (so 2 attempts total).
+    /// Number of automatic retries on a transient pre-commit failure (2 attempts total).
     static let maxRetries = 1
 
+    /// Stream `request` as SSE. `onData` receives each payload and returns whether
+    /// it committed visible output — once it has, a later blip can no longer retry.
     static func stream(
         _ request: URLRequest,
-        onData: (String) throws -> Void
+        onData: (String) -> Bool
     ) async throws {
-        let bytes = try await connect(request)
-        for try await line in bytes.lines {
-            if let payload = payload(from: line) { try onData(payload) }
-        }
-    }
-
-    /// Open the request and return the byte stream of a 200 response, retrying once
-    /// on a transient error. No `onData` has fired yet, so a retry here is safe.
-    private static func connect(_ request: URLRequest) async throws -> URLSession.AsyncBytes {
         var attempt = 0
+        var committed = false
         while true {
             do {
                 let (bytes, response) = try await URLSession.shared.bytes(for: request)
                 guard let http = response as? HTTPURLResponse else {
                     throw AIError.malformedResponse("no HTTP response")
                 }
-                if http.statusCode == 200 { return bytes }
-
-                // Drain the body so we can surface a meaningful error message.
-                var body = ""
-                for try await line in bytes.lines { body += line + "\n" }
-
-                if attempt < maxRetries, isRetryable(status: http.statusCode) {
-                    attempt += 1
-                    let delay = retryDelay(retryAfter: http.value(forHTTPHeaderField: "Retry-After"), attempt: attempt)
-                    Log.debug("HTTP \(http.statusCode) — retrying in \(delay)s (attempt \(attempt))")
-                    try await Task.sleep(for: .seconds(delay))
-                    continue
+                if http.statusCode != 200 {
+                    let body = try await drain(bytes)
+                    if attempt < maxRetries, isRetryable(status: http.statusCode) {
+                        attempt += 1
+                        let delay = retryDelay(retryAfter: http.value(forHTTPHeaderField: "Retry-After"), attempt: attempt)
+                        Log.debug("HTTP \(http.statusCode) — retrying in \(delay)s (attempt \(attempt))")
+                        try await Task.sleep(for: .seconds(delay))
+                        continue
+                    }
+                    throw AIError.http(status: http.statusCode, body: body)
                 }
-                throw AIError.http(status: http.statusCode, body: body.trimmingCharacters(in: .whitespacesAndNewlines))
+                for try await line in bytes.lines {
+                    if let payload = payload(from: line), onData(payload) { committed = true }
+                }
+                return
             } catch let error as AIError {
                 throw error
             } catch is CancellationError {
                 throw CancellationError()
             } catch {
-                // Network-level failure: retry once, then surface.
-                if attempt < maxRetries {
+                // Network blip during connect, status, or the silent warm-up. Retry
+                // from scratch only before the consumer committed visible output —
+                // re-sending after that would duplicate text the user already saw.
+                if !committed, attempt < maxRetries {
                     attempt += 1
-                    Log.debug("network error — retrying (attempt \(attempt)): \(error.localizedDescription)")
+                    Log.debug("network blip before first token — retrying (attempt \(attempt)): \(error.localizedDescription)")
                     try await Task.sleep(for: .seconds(1))
                     continue
                 }
                 throw AIError.network(error.localizedDescription)
             }
         }
+    }
+
+    /// Drain a non-200 response body into a trimmed string for the error message.
+    private static func drain(_ bytes: URLSession.AsyncBytes) async throws -> String {
+        var body = ""
+        for try await line in bytes.lines { body += line + "\n" }
+        return body.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// Whether a status code is worth retrying: rate limits and server errors.
