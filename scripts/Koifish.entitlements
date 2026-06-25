@@ -13,5 +13,13 @@
     <!-- App is NOT sandboxed: it needs the Accessibility API to read/insert text
          in arbitrary apps and a CGEventTap for the global hotkey. The macOS sandbox
          forbids both, so Koifish runs unsandboxed (like the original). -->
+    <!-- Use the data-protection keychain (scoped to this app's signing identity) so
+         reading our own API keys never shows the recurring "allow access" prompt that
+         the legacy file keychain does. The access group is the bundle id; no Team ID
+         is required for a locally-signed build. -->
+    <key>keychain-access-groups</key>
+    <array>
+        <string>sh.koifish.Koifish</string>
+    </array>
 </dict>
 </plist>
