@@ -161,7 +161,7 @@ final class Coordinator {
         // Cancel any in-flight run before starting fresh.
         generationTask?.cancel()
         inline.clear()
-        inline.begin(fieldEmpty: !context.hasText)
+        inline.begin(fieldEmpty: context.isFieldEmpty)
         onThinkingStateChanged(true)
         Log.debug("direct: generation started")
 

@@ -26,9 +26,22 @@ struct FocusedContext: @unchecked Sendable {
     var breadcrumb: [String] = []
     /// AX role of the focused element (e.g. "AXTextArea", "AXTextField").
     var focusedRole: String = ""
+    /// The field's own placeholder / hint text (e.g. a web "Add a comment…"), which
+    /// some web inputs report as their value when they're actually empty.
+    var placeholderValue: String = ""
 
     var hasText: Bool { !fieldText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     var hasSelection: Bool { !selectedText.isEmpty }
+
+    /// True when the field holds no real user text — empty, whitespace, or only its
+    /// own placeholder/hint. Safe to drop our placeholder in and ⌘A-overwrite it,
+    /// since ⌘A then selects only what we added.
+    var isFieldEmpty: Bool {
+        let value = fieldText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if value.isEmpty { return true }
+        let hint = placeholderValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !hint.isEmpty && value == hint
+    }
 }
 
 /// Reads the focused text element of the frontmost app via the Accessibility API.
@@ -52,6 +65,7 @@ enum FocusedFieldReader {
 
         let fieldText = copyString(focused, kAXValueAttribute) ?? ""
         let selectedText = copyString(focused, kAXSelectedTextAttribute) ?? ""
+        let placeholderText = copyString(focused, kAXPlaceholderValueAttribute) ?? ""
         let windowTitle = focusedWindowTitle(focused)
         let context = AXContext.gather(focused: focused, maxElements: maxElements, budget: budget)
 
@@ -64,7 +78,8 @@ enum FocusedFieldReader {
             targetApp: frontApp,
             pageContext: context.pageText,
             breadcrumb: context.breadcrumb,
-            focusedRole: context.focusedRole
+            focusedRole: context.focusedRole,
+            placeholderValue: placeholderText
         )
     }
 
