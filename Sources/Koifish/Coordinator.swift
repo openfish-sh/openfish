@@ -42,43 +42,54 @@ final class Coordinator {
         activity.onStateChanged = { [weak self] on in self?.onActivityStateChanged(on) }
         activity.setWatching(Settings.shared.activityMemoryEnabled)
 
-        if AXPermissions.isTrusted {
-            hotkeys.start()
-        } else {
-            Log.info("Accessibility not yet granted — polling until permission is given.")
-            waitForAccessibility()
-        }
+        installHotkeys()
     }
 
     /// Re-install the hotkey tap so a changed trigger takes effect immediately,
     /// without relaunching. Called from Settings when the user rebinds a key.
     func reloadHotkeys() {
-        permissionTask?.cancel()
-        permissionTask = nil
         hotkeys.stop()
-        if AXPermissions.isTrusted {
-            hotkeys.start()
-        } else {
-            waitForAccessibility()
-        }
+        installHotkeys()
     }
 
-    private var permissionTask: Task<Void, Never>?
+    private var hotkeyInstallTask: Task<Void, Never>?
+    private var warnedHotkeyInstallFailed = false
 
-    /// Poll for Accessibility being granted, then install the tap once and stop.
-    private func waitForAccessibility() {
-        permissionTask?.cancel()
-        permissionTask = Task { [weak self] in
+    /// Install the global hotkey tap so triggers actually fire — and never let that
+    /// fail silently. A dead tap means the user presses the hotkey and nothing
+    /// happens, so neither failure mode stays quiet: no permission yet → poll until
+    /// granted; tap won't install *despite* permission → toast why, then keep
+    /// retrying so it self-heals once the user fixes it.
+    private func installHotkeys() {
+        hotkeyInstallTask?.cancel()
+        hotkeyInstallTask = nil
+        if tryInstallHotkeys() { return }
+        if !AXPermissions.isTrusted {
+            Log.info("Accessibility not yet granted — polling until permission is given.")
+        }
+        hotkeyInstallTask = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(2))
                 guard let self else { return }
-                if AXPermissions.isTrusted {
-                    self.hotkeys.start()
-                    self.permissionTask = nil
-                    return
-                }
+                if self.tryInstallHotkeys() { self.hotkeyInstallTask = nil; return }
             }
         }
+    }
+
+    /// One install attempt. Returns true once the tap is live. If Accessibility is
+    /// granted but the tap still won't create (usually Input Monitoring is off),
+    /// surface that once — so a granted-but-still-broken trigger is never silent.
+    private func tryInstallHotkeys() -> Bool {
+        guard AXPermissions.isTrusted else { return false }
+        if hotkeys.start() {
+            warnedHotkeyInstallFailed = false
+            return true
+        }
+        if !warnedHotkeyInstallFailed {
+            warnedHotkeyInstallFailed = true
+            Toast.shared.show("Couldn't enable the \(Settings.shared.generateHotkey.displayString) hotkey. Check Accessibility & Input Monitoring in System Settings.")
+        }
+        return false
     }
 
     // MARK: Generate flow
