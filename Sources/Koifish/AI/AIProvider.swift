@@ -12,6 +12,7 @@ struct GenerationRequest: Sendable {
 
 enum AIError: LocalizedError, Sendable {
     case missingAPIKey(ProviderKind)
+    case malformedAPIKey(ProviderKind, hint: String)
     case http(status: Int, body: String)
     case malformedResponse(String)
     case network(String)
@@ -20,6 +21,8 @@ enum AIError: LocalizedError, Sendable {
         switch self {
         case .missingAPIKey(let p):
             return "No API key set for \(p.displayName). Add one in Settings → API Keys."
+        case .malformedAPIKey(let p, let hint):
+            return "That doesn't look like a valid \(p.displayName) key. \(hint)"
         case .http(let status, let body):
             switch status {
             case 401: return "Invalid API key (HTTP 401). Check it in Settings → API Keys."
@@ -31,6 +34,41 @@ enum AIError: LocalizedError, Sendable {
             return "Unexpected response from the provider: \(detail)"
         case .network(let detail):
             return "Network error: \(detail)"
+        }
+    }
+
+    /// Pre-flight shape check on an API key, so an obviously-wrong key fails right
+    /// away with a clear message instead of an opaque mid-stream HTTP 401. Catches
+    /// the three common mistakes: a missing key, stray whitespace from a paste, and
+    /// a key dropped into the wrong provider's field (caught by its prefix). Lenient
+    /// by design — it only rejects what's clearly wrong, so a future key-format
+    /// change can't lock a valid key out. Pure — unit-testable.
+    static func keyShapeProblem(_ apiKey: String, for kind: ProviderKind) -> AIError? {
+        let trimmed = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return kind.requiresKey ? .missingAPIKey(kind) : nil
+        }
+        if trimmed != apiKey || trimmed.contains(where: \.isWhitespace) {
+            return .malformedAPIKey(kind, hint: "Remove any spaces or line breaks in it.")
+        }
+        if let prefix = kind.apiKeyPrefix, !trimmed.hasPrefix(prefix) {
+            return .malformedAPIKey(kind, hint: "It should start with “\(prefix)”.")
+        }
+        return nil
+    }
+}
+
+extension ProviderKind {
+    /// The prefix a well-formed key for this provider carries — used to catch a key
+    /// pasted into the wrong provider's field before any request goes out. nil for
+    /// custom OpenAI-compatible endpoints, whose keys can take any shape (or be
+    /// absent, e.g. a local Ollama/LM Studio server).
+    var apiKeyPrefix: String? {
+        switch self {
+        case .anthropic: return "sk-ant-"
+        case .openai: return "sk-"
+        case .gemini: return "AIza"
+        case .openAICompatible: return nil
         }
     }
 }

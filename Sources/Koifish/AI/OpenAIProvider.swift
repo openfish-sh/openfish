@@ -23,6 +23,7 @@ struct OpenAIProvider: AIProvider, TranscriptionProvider {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
+                    if let problem = AIError.keyShapeProblem(apiKey, for: kind) { throw problem }
                     var req = URLRequest(url: chatEndpoint)
                     req.httpMethod = "POST"
                     req.setValue("application/json", forHTTPHeaderField: "Content-Type")
