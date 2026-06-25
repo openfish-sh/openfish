@@ -318,6 +318,14 @@ final class SSEDeltaTests: XCTestCase {
         XCTAssertNil(OpenAIProvider.textDelta(fromSSE: #"{"choices":[{"delta":{},"finish_reason":"stop"}]}"#))
         XCTAssertNil(OpenAIProvider.textDelta(fromSSE: #"{"choices":[]}"#))
     }
+
+    func testReasoningEffortByProvider() {
+        // The gpt-5.4 family rejects "minimal"; "none" is its lowest tier. Custom
+        // OpenAI-compatible endpoints get nil so the param can't break an unknown model.
+        XCTAssertEqual(OpenAIProvider.reasoningEffort(for: .openai), "none")
+        XCTAssertEqual(OpenAIProvider.reasoningEffort(for: .gemini), "low")
+        XCTAssertNil(OpenAIProvider.reasoningEffort(for: .openAICompatible))
+    }
 }
 
 final class ModifierTapDetectorTests: XCTestCase {

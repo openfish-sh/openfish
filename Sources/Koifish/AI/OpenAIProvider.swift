@@ -33,15 +33,7 @@ struct OpenAIProvider: AIProvider, TranscriptionProvider {
                     // drive here (Gemini, Groq, OpenRouter, Ollama, …) still expect
                     // `max_tokens`, so pick the field by provider.
                     let useCompletionTokens = (kind == .openai)
-                    // GPT-5 and Gemini "think" before answering. For short inline
-                    // replies that's slow and can spill the model's scratchpad into the
-                    // output, so hold reasoning to the minimum. Only sent to providers
-                    // known to accept it (a custom endpoint might reject the param).
-                    let effort: String? = switch kind {
-                    case .openai: "minimal"
-                    case .gemini: "low"
-                    default: nil
-                    }
+                    let effort = Self.reasoningEffort(for: kind)
                     let body = RequestBody(
                         model: request.model,
                         maxTokens: useCompletionTokens ? nil : request.maxTokens,
@@ -65,6 +57,20 @@ struct OpenAIProvider: AIProvider, TranscriptionProvider {
                 }
             }
             continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    /// The `reasoning_effort` to send, by provider. GPT-5 and Gemini "think" before
+    /// answering; for short inline replies that's slow and can spill the model's
+    /// scratchpad into the output, so we hold reasoning to the minimum. The gpt-5.4
+    /// family renamed the old `"minimal"` tier to `"none"` (and rejects `"minimal"`).
+    /// nil for endpoints that may reject the param outright (a custom OpenAI-compatible
+    /// server, which could be any model).
+    static func reasoningEffort(for kind: ProviderKind) -> String? {
+        switch kind {
+        case .openai: "none"
+        case .gemini: "low"
+        default: nil
         }
     }
 
