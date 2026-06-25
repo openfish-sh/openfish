@@ -164,7 +164,7 @@ final class Coordinator {
         setActivityWatching(!Settings.shared.activityMemoryEnabled)
     }
 
-    // MARK: Direct mode — in-field placeholder (empty field) or floating cue, then the reply
+    // MARK: Direct mode — floating cue, then paste the reply into the field
 
     private func runGenerationDirect() {
         if let problem = configProblem() { Toast.shared.show(problem); return }
@@ -172,7 +172,7 @@ final class Coordinator {
         // Cancel any in-flight run before starting fresh.
         generationTask?.cancel()
         inline.clear()
-        inline.begin(fieldEmpty: context.isFieldEmpty)
+        inline.begin()
         onThinkingStateChanged(true)
         Log.debug("direct: generation started")
 
