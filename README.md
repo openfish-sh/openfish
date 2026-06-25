@@ -12,9 +12,6 @@ Bring your own key — Claude, GPT, Gemini, or any OpenAI-compatible endpoint. T
 key sits in your Keychain and nowhere else. The only packet that ever leaves the
 machine is the one *you* aim at the model *you* picked.
 
-> Display name is **Openfish**; the guts — bundle id, Keychain, data folder,
-> Swift module — stay **Koifish**, so updates don't nuke your permissions.
-
 ## Install
 
 ```sh
