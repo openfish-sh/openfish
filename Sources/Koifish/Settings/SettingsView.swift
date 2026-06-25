@@ -36,7 +36,7 @@ struct SettingsView: View {
             }
             .scrollContentBackground(.hidden)
         }
-        .frame(width: 560, height: 560)
+        .frame(minWidth: 560, maxWidth: .infinity, minHeight: 420, maxHeight: .infinity)
         .background(VisualEffectBackground().ignoresSafeArea())
     }
 }

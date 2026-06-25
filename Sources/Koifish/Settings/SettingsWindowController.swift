@@ -15,9 +15,16 @@ final class SettingsWindowController: NSWindowController {
 
     init(coordinator: Coordinator) {
         self.coordinator = coordinator
+        // Size to show the full settings without scrolling where the display allows,
+        // clamped to the visible screen so it never runs off a small one (the inner
+        // ScrollView still handles any overflow). Resizable so the user can adjust.
+        let desired = NSSize(width: 560, height: 900)
+        let visible = NSScreen.main?.visibleFrame.size ?? desired
+        let size = NSSize(width: min(desired.width, visible.width),
+                          height: min(desired.height, visible.height))
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 560, height: 560),
-            styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
+            contentRect: NSRect(origin: .zero, size: size),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
