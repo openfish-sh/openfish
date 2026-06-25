@@ -262,14 +262,18 @@ final class Settings: ObservableObject {
 /// good latency/quality balance on short inline replies; Opus is available for
 /// higher quality, Haiku for cheap background style summaries.
 enum AIModels {
-    // Anthropic — current 4.x family. Sonnet balances quality/latency for short
-    // inline replies; Opus for top quality; Haiku for cheap background summaries.
+    // Anthropic — current family. Sonnet balances quality/latency for short inline
+    // replies (the default); Opus 4.8/4.7/4.6 climb in quality; Haiku is cheap for
+    // background summaries; Fable 5 is the flagship for the most demanding replies.
     static let defaultAnthropic = "claude-sonnet-4-6"
     static let summaryAnthropic = "claude-haiku-4-5"
     static let anthropicChoices = [
         "claude-sonnet-4-6",
         "claude-opus-4-8",
+        "claude-opus-4-7",
+        "claude-opus-4-6",
         "claude-haiku-4-5",
+        "claude-fable-5",
     ]
 
     // OpenAI — GPT-5 family (gpt-4o / gpt-4o-mini are deprecated). 5.4 is the
@@ -295,6 +299,16 @@ enum AIModels {
     ]
 
     // OpenAI speech-to-text for dictation. gpt-4o-mini-transcribe supersedes
-    // whisper-1 (better accuracy, similar cost).
+    // whisper-1 (better accuracy, similar cost) and is the default.
     static let whisperModel = "gpt-4o-mini-transcribe"
+
+    // Transcription models offered for dictation, distinct from the reply models
+    // above. gpt-4o-mini-transcribe is the default; gpt-4o-transcribe is higher
+    // accuracy; whisper-1 is the legacy fallback. A Custom endpoint can still type
+    // any id (e.g. Groq's whisper-large-v3) — these are presets, not a hard list.
+    static let transcriptionChoices = [
+        "gpt-4o-mini-transcribe",
+        "gpt-4o-transcribe",
+        "whisper-1",
+    ]
 }
