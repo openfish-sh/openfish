@@ -153,17 +153,17 @@ final class Coordinator {
         setActivityWatching(!Settings.shared.activityMemoryEnabled)
     }
 
-    // MARK: Direct mode — paste the reply straight into the focused field
+    // MARK: Direct mode — placeholder in the field, selected and overwritten by the reply
 
     private func runGenerationDirect() {
         if let problem = configProblem() { Toast.shared.show(problem); return }
         let (provider, key, request, profileID) = makeRequest()
-        // Cancel any in-flight run before starting fresh.
+        // Cancel any in-flight run and clear its placeholder before starting fresh.
         generationTask?.cancel()
         inline.clear()
         inline.begin()
         onThinkingStateChanged(true)
-        Log.debug("direct: generation started")
+        Log.debug("direct: inline placeholder started")
 
         let ai = AIProviderFactory.make(provider, baseURL: Settings.shared.activeBaseURL)
         let ctx = context
