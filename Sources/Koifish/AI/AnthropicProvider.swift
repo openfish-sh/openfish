@@ -28,9 +28,13 @@ struct AnthropicProvider: AIProvider {
                     encoder.keyEncodingStrategy = .convertToSnakeCase
                     req.httpBody = try encoder.encode(body)
 
+                    var produced = false
                     try await StreamingHTTP.stream(req) { payload in
-                        if let text = Self.textDelta(fromSSE: payload) { continuation.yield(text) }
+                        guard let text = Self.textDelta(fromSSE: payload) else { return }
+                        if !text.allSatisfy(\.isWhitespace) { produced = true }
+                        continuation.yield(text)
                     }
+                    guard produced else { throw AIError.emptyResponse(kind) }
                     continuation.finish()
                 } catch {
                     continuation.finish(throwing: error)
