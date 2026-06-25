@@ -3,6 +3,14 @@
     <channel>
         <title>Openfish</title>
         <item>
+            <title>0.1.10</title>
+            <pubDate>Thu, 25 Jun 2026 19:04:55 +0200</pubDate>
+            <sparkle:version>12</sparkle:version>
+            <sparkle:shortVersionString>0.1.10</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/openfish-sh/openfish/releases/download/v0.1.10/Openfish.dmg" length="2681353" type="application/octet-stream" sparkle:edSignature="CrctNuxnI6XWKPzUoUSZEQqIL47PIx9e7tQtA/OCZMLRB+Jp3bIthmLxnugw/kgay4939FmYN8icOhIAiYrGCg=="/>
+        </item>
+        <item>
             <title>0.1.9</title>
             <pubDate>Wed, 24 Jun 2026 21:52:45 +0200</pubDate>
             <sparkle:version>10</sparkle:version>
@@ -17,14 +25,6 @@
             <sparkle:shortVersionString>0.1.8</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/openfish-sh/openfish/releases/download/v0.1.8/Openfish.dmg" length="2636874" type="application/octet-stream" sparkle:edSignature="b85ZVzLHnFgie1zzYoUCVfhmPrbJzu9tNbMDM5xCF2vVa7Zk5+tsZEJr6rGRT3zPpRkHq9ra9cdS07HI7qSZDg=="/>
-        </item>
-        <item>
-            <title>0.1.7</title>
-            <pubDate>Wed, 24 Jun 2026 21:04:45 +0200</pubDate>
-            <sparkle:version>8</sparkle:version>
-            <sparkle:shortVersionString>0.1.7</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/openfish-sh/openfish/releases/download/v0.1.7/Openfish.dmg" length="2625601" type="application/octet-stream" sparkle:edSignature="q6PzxNR0LpJ0dgYpSYpSg6G1U2upJoX5YqgaLHyPFjC0EToEjTI+cY7wE1l2ua/F/NopgJn7M95rGAhCwUGwAA=="/>
         </item>
     </channel>
 </rss>
