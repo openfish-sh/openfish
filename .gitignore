@@ -10,5 +10,8 @@ Koifish.app/
 # Proprietary reference material — never redistribute. Kept locally, never committed.
 *.dmg
 
+# Live session state written at runtime — ephemeral, never committed.
+data-live.json
+
 # macOS
 .DS_Store
