@@ -29,10 +29,10 @@ enum KeychainStore {
             addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
             let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
             if addStatus != errSecSuccess {
-                Log.error("Keychain add failed: \(addStatus)")
+                Log.error("Couldn't save the \(provider.displayName) API key to Keychain — \(reason(addStatus))")
             }
         } else if status != errSecSuccess {
-            Log.error("Keychain update failed: \(status)")
+            Log.error("Couldn't update the \(provider.displayName) API key in Keychain — \(reason(status))")
         }
     }
 
@@ -46,7 +46,15 @@ enum KeychainStore {
         ]
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess, let data = item as? Data else { return nil }
+        // No key stored yet is the normal case for a fresh install — stay quiet.
+        if status == errSecItemNotFound { return nil }
+        // Any other failure means a key the user *did* set is now unreadable
+        // (Keychain locked, access denied, item corrupt…). Without a message,
+        // callers just see "no key" and blame the user. Name the real reason.
+        guard status == errSecSuccess, let data = item as? Data else {
+            Log.error("Couldn't read the \(provider.displayName) API key from Keychain — \(reason(status)). It's stored but unreadable, so requests will fail until this clears.")
+            return nil
+        }
         return String(data: data, encoding: .utf8)
     }
 
@@ -61,5 +69,15 @@ enum KeychainStore {
             kSecAttrAccount as String: provider.rawValue,
         ]
         SecItemDelete(query as CFDictionary)
+    }
+
+    /// Turn a Keychain OSStatus into a human-readable reason, e.g.
+    /// "User interaction is not allowed. (-25308)". Falls back to the raw
+    /// code when the system has no message for it.
+    private static func reason(_ status: OSStatus) -> String {
+        if let message = SecCopyErrorMessageString(status, nil) as String? {
+            return "\(message) (\(status))"
+        }
+        return "OSStatus \(status)"
     }
 }
