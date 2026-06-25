@@ -15,6 +15,9 @@ enum AIError: LocalizedError, Sendable {
     case http(status: Int, body: String)
     case malformedResponse(String)
     case network(String)
+    /// The request succeeded but the model produced no usable text — there's no
+    /// draft to insert, so we say so rather than silently doing nothing.
+    case emptyResponse(ProviderKind)
 
     var errorDescription: String? {
         switch self {
@@ -25,13 +28,34 @@ enum AIError: LocalizedError, Sendable {
             case 401: return "Invalid API key (HTTP 401). Check it in Settings → API Keys."
             case 429: return "Rate limited or out of quota (HTTP 429). Wait a moment, or switch provider in Settings (e.g. Groq/Custom)."
             case 404: return "Model not found (HTTP 404). Pick a different model in Settings."
-            default: return "Request failed (HTTP \(status)): \(body.prefix(200))"
+            default: return "Couldn't make a draft (HTTP \(status)): \(Self.providerMessage(fromBody: body))"
             }
         case .malformedResponse(let detail):
             return "Unexpected response from the provider: \(detail)"
         case .network(let detail):
             return "Network error: \(detail)"
+        case .emptyResponse(let p):
+            return "\(p.displayName) returned an empty reply — no draft to insert. Try again, or pick a different model in Settings."
         }
+    }
+
+    /// Pull the provider's own explanation out of an error body. Anthropic- and
+    /// OpenAI-style APIs both nest it under `error.message`; some (Gemini, custom
+    /// servers) put it at the top level. Falls back to the trimmed raw body so we
+    /// never show empty, and never dump bare JSON at the user.
+    private static func providerMessage(fromBody body: String) -> String {
+        if let data = body.data(using: .utf8),
+           let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            if let error = obj["error"] as? [String: Any],
+               let message = error["message"] as? String, !message.isEmpty {
+                return message
+            }
+            if let message = obj["message"] as? String, !message.isEmpty {
+                return message
+            }
+        }
+        let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "no detail from the provider" : String(trimmed.prefix(300))
     }
 }
 
