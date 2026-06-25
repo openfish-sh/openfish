@@ -8,11 +8,15 @@ enum KeychainStore {
 
     static func setKey(_ value: String, for provider: ProviderKind) {
         let account = provider.rawValue
-        if value.isEmpty {
+        let trimmed = sanitized(value)
+        // A blank (or whitespace-only) value means "clear the key", not "store a
+        // silently broken one": otherwise hasKey() would report true and the first
+        // reply 401s instead of honestly saying "no key set" up front.
+        if trimmed.isEmpty {
             deleteKey(for: provider)
             return
         }
-        let data = Data(value.utf8)
+        let data = Data(trimmed.utf8)
 
         // Update if present, else add.
         let query: [String: Any] = [
@@ -46,8 +50,21 @@ enum KeychainStore {
         ]
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess, let data = item as? Data else { return nil }
-        return String(data: data, encoding: .utf8)
+        guard status == errSecSuccess, let data = item as? Data,
+              let raw = String(data: data, encoding: .utf8) else { return nil }
+        // Clean keys stored before sanitizing existed (or written by any other path),
+        // so a stray newline can't ride into the auth header and 401 the first reply.
+        // A value that's all whitespace reads as no key — keeping hasKey() honest.
+        let trimmed = sanitized(raw)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    /// Strip the copy/paste noise (leading/trailing spaces, a trailing newline) a key
+    /// picks up from the clipboard. Such noise would ride into the `x-api-key` /
+    /// `Authorization` header verbatim and turn a correct key into a 401 on the first
+    /// reply, so it's cleaned at the store boundary regardless of which caller wrote it.
+    private static func sanitized(_ raw: String) -> String {
+        raw.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     static func hasKey(for provider: ProviderKind) -> Bool {
