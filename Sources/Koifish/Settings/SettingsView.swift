@@ -467,16 +467,22 @@ private struct VoiceCard: View {
             HStack {
                 Text("Dictation model").font(.subheadline).bold()
                 Spacer()
-                Menu("Presets") {
-                    ForEach(AIModels.transcriptionChoices, id: \.self) { model in
-                        Button(model) { settings.voiceModel = model }
+                // Presets are OpenAI transcription ids, so only offer them when
+                // dictation actually routes through OpenAI. A Custom endpoint
+                // transcribes elsewhere (e.g. Groq wants whisper-large-v3), so
+                // there it's free-text only — matching the endpoint presets above.
+                if settings.provider != .openAICompatible {
+                    Menu("Presets") {
+                        ForEach(AIModels.transcriptionChoices, id: \.self) { model in
+                            Button(model) { settings.voiceModel = model }
+                        }
                     }
+                    .frame(maxWidth: 92)
                 }
-                .frame(maxWidth: 92)
                 TextField(settings.provider == .openAICompatible ? "whisper-large-v3" : AIModels.whisperModel,
                           text: $settings.voiceModel)
                     .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: 180)
+                    .frame(maxWidth: 200)
             }
             HStack {
                 Text("Language").font(.subheadline).bold()
