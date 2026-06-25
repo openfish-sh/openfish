@@ -14,25 +14,31 @@ enum KeychainStore {
         }
         let data = Data(value.utf8)
 
-        // Update if present, else add.
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
         ]
-        let attributes: [String: Any] = [kSecValueData as String: data]
 
-        let status = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
-        if status == errSecItemNotFound {
-            var addQuery = query
-            addQuery[kSecValueData as String] = data
-            addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
-            let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
-            if addStatus != errSecSuccess {
-                Log.error("Keychain add failed: \(addStatus)")
+        // Add first, fall back to update on duplicate. The create path runs
+        // unconditionally on a fresh keychain, so the very first save can't be
+        // lost: the old "update, then add on errSecItemNotFound" order silently
+        // skipped the add whenever a missing item reported any status other than
+        // errSecItemNotFound (e.g. a stale item this signature can't match).
+        var addQuery = query
+        addQuery[kSecValueData as String] = data
+        addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+        let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
+        if addStatus == errSecDuplicateItem {
+            let updateStatus = SecItemUpdate(
+                query as CFDictionary,
+                [kSecValueData as String: data] as CFDictionary
+            )
+            if updateStatus != errSecSuccess {
+                Log.error("Keychain update failed: \(updateStatus)")
             }
-        } else if status != errSecSuccess {
-            Log.error("Keychain update failed: \(status)")
+        } else if addStatus != errSecSuccess {
+            Log.error("Keychain add failed: \(addStatus)")
         }
     }
 
