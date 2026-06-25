@@ -1,11 +1,9 @@
 import AppKit
 
 /// Direct-mode insertion: paste the final reply into the focused field in a single
-/// step, with **no in-field placeholder**.
-///
-/// The "working" state is shown on the menu-bar fish (see `StatusItemController`,
-/// driven by `Coordinator.onThinkingStateChanged`) — the field itself is touched
-/// exactly once, when the reply is ready.
+/// step, with **no in-field placeholder**. Progress is shown by a floating
+/// `(gone fishing...)` cue beside the pointer (`FishingHUD`) and the menu-bar fish —
+/// never as text in the field, which is touched exactly once, when the reply lands.
 ///
 /// That single touch is the whole point. The previous design pasted a
 /// `(gone fishing...)` placeholder and then deleted it with a burst of synthesized
@@ -41,6 +39,7 @@ final class InlineComposer {
         } else {
             savedClipboard = NSPasteboard.general.string(forType: .string)
         }
+        FishingHUD.shared.show()
     }
 
     /// Insert the final reply and stop.
@@ -54,6 +53,7 @@ final class InlineComposer {
         guard isActive else { return }
         isActive = false
 
+        FishingHUD.shared.hide()
         if let reply, !reply.isEmpty {
             KeyboardSynth.paste(reply)
         }
