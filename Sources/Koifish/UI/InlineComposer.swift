@@ -1,62 +1,84 @@
 import AppKit
 
-/// Direct-mode insertion: paste the final reply into the focused field in a single
-/// step, with **no in-field placeholder**. Progress is shown by a floating
-/// `(gone fishing...)` cue beside the pointer (`FishingHUD`) and the menu-bar fish —
-/// never as text in the field, which is touched exactly once, when the reply lands.
+/// Direct-mode field feedback, chosen per field so it's reliable everywhere:
 ///
-/// That single touch is the whole point. The previous design pasted a
-/// `(gone fishing...)` placeholder and then deleted it with a burst of synthesized
-/// backspaces before pasting the reply. Drop-prone targets — web views (LinkedIn,
-/// x.com), Electron apps (Slack), terminals — silently swallow part of that
-/// backspace burst, so the placeholder was left half-deleted and the reply landed
-/// *inside* it: `(go` + reply + `ne fishing...)`. With no placeholder there is
-/// nothing to delete, so nothing can be half-deleted: the field can only ever
-/// receive the exact reply text, in every app.
+/// * **Empty field** (a fresh reply box — the common case): paste the static
+///   `(gone fishing...)` placeholder into the field, then swap it for the reply with
+///   **⌘A + paste**. ⌘A is a single shortcut, honored even in web views (it's the
+///   same kind of event as the ⌘V that already inserts the reply), so it overwrites
+///   the lone placeholder in one shot — no fragile multi-key delete burst, which is
+///   what web views drop and what stranded the reply inside the placeholder before.
+/// * **Field already holds the user's draft**: ⌘A would select their text too, so we
+///   never touch the field for feedback — we show the floating `(gone fishing...)`
+///   cue (`FishingHUD`) instead and paste only the reply at the cursor.
 ///
-/// We **paste** (never type) so smart substitution / autocorrect can't rewrite the
-/// text, and we save/restore the user's clipboard around the paste.
+/// We **paste** (never type) so smart substitution can't rewrite the text, and we
+/// save/restore the user's clipboard around the pastes.
 @MainActor
 final class InlineComposer {
     private(set) var isActive = false
+    /// Whether this run put the placeholder *in* the field (empty field) vs. used the
+    /// floating cue (field already had the user's text).
+    private var usePlaceholder = false
     private var savedClipboard: String?
     /// The scheduled clipboard restore, kept so a superseding run can cancel it
     /// before it clobbers the saved original.
     private var pendingRestore: DispatchWorkItem?
 
-    /// Begin a run: snapshot the clipboard so we can put it back after pasting the
-    /// reply. Nothing is written to the field here.
-    func begin() {
+    private static let placeholder = "(gone fishing...)"
+
+    /// Begin a run. `fieldEmpty` decides the feedback: in-field placeholder when the
+    /// field is empty, floating cue when it already holds the user's draft.
+    func begin(fieldEmpty: Bool) {
         guard !isActive else { return }
         isActive = true
+        usePlaceholder = fieldEmpty
+
         // If a previous run's clipboard restore is still pending, the real clipboard
-        // hasn't been put back yet — keep the original we already saved and cancel
-        // that restore so it can't fire mid-run. Only sample the clipboard afresh
-        // when nothing of ours is outstanding (otherwise we'd save our own paste).
+        // hasn't been put back yet — keep the original we already saved and cancel that
+        // restore so it can't fire mid-run. Only sample afresh when nothing of ours is
+        // outstanding (otherwise we'd save our own placeholder).
         if let pending = pendingRestore {
             pending.cancel()
             pendingRestore = nil
         } else {
             savedClipboard = NSPasteboard.general.string(forType: .string)
         }
-        FishingHUD.shared.show()
+
+        if usePlaceholder {
+            KeyboardSynth.paste(Self.placeholder)
+        } else {
+            FishingHUD.shared.show()
+        }
     }
 
-    /// Insert the final reply and stop.
+    /// Replace the placeholder (or insert at the cursor) with the final reply and stop.
     func finish(with reply: String) { stop(insert: reply) }
 
-    /// Stop without inserting (error / cancel). Nothing was placed in the field, so
-    /// there is nothing to undo.
+    /// Stop without inserting (error / cancel), removing any placeholder we added.
     func clear() { stop(insert: nil) }
 
     private func stop(insert reply: String?) {
         guard isActive else { return }
         isActive = false
 
-        FishingHUD.shared.hide()
-        if let reply, !reply.isEmpty {
-            KeyboardSynth.paste(reply)
+        if usePlaceholder {
+            // The placeholder is the field's only content (it was empty), so select all
+            // of it with ⌘A and overwrite in one shot.
+            KeyboardSynth.selectAll()
+            usleep(40_000)  // 40 ms — let the selection register before the overwrite
+            if let reply, !reply.isEmpty {
+                KeyboardSynth.paste(reply)          // paste replaces the selected placeholder
+            } else {
+                KeyboardSynth.backspace(times: 1)   // error / cancel: clear the selection
+            }
+        } else {
+            FishingHUD.shared.hide()
+            if let reply, !reply.isEmpty {
+                KeyboardSynth.paste(reply)          // insert at the cursor
+            }
         }
+        usePlaceholder = false
 
         // Restore the user's clipboard once the paste has landed. Cancellable so a
         // superseding run can't clobber the saved original (see begin()).

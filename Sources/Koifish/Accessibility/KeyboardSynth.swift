@@ -1,9 +1,10 @@
 import AppKit
 import Carbon.HIToolbox
 
-/// Synthesizes the paste (⌘V) that inserts a reply into the focused field. This is
-/// the universal insertion path: Accessibility text-setting silently fails in web
-/// views and terminals, but a synthesized ⌘V works everywhere.
+/// Synthesizes the keystrokes that place a reply into the focused field — paste
+/// (⌘V), select-all (⌘A), and Delete. This is the universal insertion path:
+/// Accessibility text-setting silently fails in web views and terminals, but
+/// synthesized ⌘-shortcuts work everywhere a paste does.
 ///
 /// We **paste** literal text (never type characters) so smart substitution /
 /// autocorrect can't rewrite it on the way in.
@@ -30,5 +31,18 @@ enum KeyboardSynth {
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
         post(CGKeyCode(kVK_ANSI_V), flags: .maskCommand)
+    }
+
+    /// Select all content in the focused field (⌘A) — a single shortcut honored even
+    /// in web views (unlike a multi-key selection/delete burst), so a following paste
+    /// can overwrite a known placeholder in one shot.
+    static func selectAll() {
+        post(CGKeyCode(kVK_ANSI_A), flags: .maskCommand)
+    }
+
+    /// Press Delete (backspace) `times` times. With a selection active, one press
+    /// clears the whole selection.
+    static func backspace(times: Int = 1) {
+        for _ in 0..<max(0, times) { post(CGKeyCode(kVK_Delete)) }
     }
 }
