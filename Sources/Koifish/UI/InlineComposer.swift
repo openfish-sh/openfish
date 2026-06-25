@@ -1,65 +1,59 @@
 import AppKit
 
-/// Direct-mode field feedback: drops a short, **static** placeholder into the
-/// focused field while generating, then replaces it in place with the reply.
+/// Direct-mode insertion: paste the final reply into the focused field in a single
+/// step, with **no in-field placeholder**.
 ///
-/// The "working" animation lives on the menu-bar fish (see `StatusItemController`),
-/// NOT in the field. The field only ever holds one fixed, known string — so we
-/// delete it by an exact, constant count. The old animated "Concocting…" loader
-/// changed length over time and was cleared with a long backspace burst whose tail
-/// drop-prone apps (iMessage, Slack, web views) swallowed, leaving ghost leading
-/// letters ("Co…"). A fixed placeholder + a settle before the paste removes both
-/// causes.
+/// The "working" state is shown on the menu-bar fish (see `StatusItemController`,
+/// driven by `Coordinator.onThinkingStateChanged`) — the field itself is touched
+/// exactly once, when the reply is ready.
 ///
-/// We **paste** the placeholder (never type it) so smart substitution can't rewrite
-/// it — e.g. typed "..." would autocorrect to "…" and throw the character count off.
+/// That single touch is the whole point. The previous design pasted a
+/// `(gone fishing...)` placeholder and then deleted it with a burst of synthesized
+/// backspaces before pasting the reply. Drop-prone targets — web views (LinkedIn,
+/// x.com), Electron apps (Slack), terminals — silently swallow part of that
+/// backspace burst, so the placeholder was left half-deleted and the reply landed
+/// *inside* it: `(go` + reply + `ne fishing...)`. With no placeholder there is
+/// nothing to delete, so nothing can be half-deleted: the field can only ever
+/// receive the exact reply text, in every app.
+///
+/// We **paste** (never type) so smart substitution / autocorrect can't rewrite the
+/// text, and we save/restore the user's clipboard around the paste.
 @MainActor
 final class InlineComposer {
     private(set) var isActive = false
-    private var placeholderLength = 0
     private var savedClipboard: String?
     /// The scheduled clipboard restore, kept so a superseding run can cancel it
     /// before it clobbers the saved original.
     private var pendingRestore: DispatchWorkItem?
 
-    /// Static, un-animated placeholder. Fixed length → exact deletion count.
-    private static let placeholder = "(gone fishing...)"
-
+    /// Begin a run: snapshot the clipboard so we can put it back after pasting the
+    /// reply. Nothing is written to the field here.
     func begin() {
         guard !isActive else { return }
         isActive = true
         // If a previous run's clipboard restore is still pending, the real clipboard
         // hasn't been put back yet — keep the original we already saved and cancel
         // that restore so it can't fire mid-run. Only sample the clipboard afresh
-        // when nothing of ours is outstanding (otherwise we'd save our own placeholder).
+        // when nothing of ours is outstanding (otherwise we'd save our own paste).
         if let pending = pendingRestore {
             pending.cancel()
             pendingRestore = nil
         } else {
             savedClipboard = NSPasteboard.general.string(forType: .string)
         }
-        KeyboardSynth.paste(Self.placeholder)
-        placeholderLength = Self.placeholder.count
     }
 
-    /// Replace the placeholder with the final reply and stop.
-    func finish(with reply: String) { stop(replaceWith: reply) }
+    /// Insert the final reply and stop.
+    func finish(with reply: String) { stop(insert: reply) }
 
-    /// Remove the placeholder (error/cancel) and stop.
-    func clear() { stop(replaceWith: nil) }
+    /// Stop without inserting (error / cancel). Nothing was placed in the field, so
+    /// there is nothing to undo.
+    func clear() { stop(insert: nil) }
 
-    private func stop(replaceWith reply: String?) {
+    private func stop(insert reply: String?) {
         guard isActive else { return }
         isActive = false
 
-        if placeholderLength > 0 {
-            KeyboardSynth.backspace(times: placeholderLength)
-            // Let the target finish draining the deletes before ⌘V's Command
-            // modifier arrives — posting the paste too soon can flush the tail of
-            // the backspace burst, which is what used to leave leading letters.
-            usleep(60_000)  // 60 ms
-        }
-        placeholderLength = 0
         if let reply, !reply.isEmpty {
             KeyboardSynth.paste(reply)
         }
