@@ -429,6 +429,30 @@ final class ProviderTests: XCTestCase {
         XCTAssertTrue(AIModels.geminiChoices.contains(AIModels.defaultGemini))
     }
 
+    func testDictationModelChoicesIncludeDefault() {
+        // Dictation has its own list of models, separate from the reply models,
+        // and the default transcription model must be one of the offered choices.
+        XCTAssertFalse(AIModels.transcriptionChoices.isEmpty)
+        XCTAssertTrue(AIModels.transcriptionChoices.contains(AIModels.whisperModel),
+                      "the default dictation model should be an offered preset")
+    }
+
+    func testBackgroundSummaryModelsAreOfferedChoices() {
+        // The cheap background-summary model for each provider must be a real,
+        // currently-offered model — otherwise summaries call a dead model id.
+        XCTAssertTrue(AIModels.anthropicChoices.contains(AIModels.summaryAnthropic))
+        XCTAssertTrue(AIModels.openAIChoices.contains(AIModels.summaryOpenAI))
+        XCTAssertTrue(AIModels.geminiChoices.contains(AIModels.summaryGemini))
+    }
+
+    func testModelChoicesHaveNoDuplicates() {
+        // A duplicated id would render twice in the picker and tag-collide.
+        for choices in [AIModels.anthropicChoices, AIModels.openAIChoices,
+                        AIModels.geminiChoices, AIModels.transcriptionChoices] {
+            XCTAssertEqual(choices.count, Set(choices).count, "model list has duplicates: \(choices)")
+        }
+    }
+
     func testFactoryMatchesKind() {
         XCTAssertEqual(AIProviderFactory.make(.anthropic, baseURL: nil).kind, .anthropic)
         XCTAssertEqual(AIProviderFactory.make(.openai, baseURL: nil).kind, .openai)

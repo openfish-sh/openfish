@@ -216,12 +216,16 @@ private struct ProviderConfigCard: View {
 
             Divider().opacity(0.3)
 
-            // Model for the selected provider.
+            // Reply model for the selected provider. Dictation uses its own
+            // (transcription) model — set separately in the Voice card below.
             HStack {
-                Text("Model").font(.subheadline).bold()
+                Text("Reply model").font(.subheadline).bold()
                 Spacer()
                 modelPicker.labelsHidden().frame(maxWidth: 240)
             }
+            Text("Generates auto-replies. Dictation transcribes with a separate model (Voice, below).")
+                .font(.caption).foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .glassCard()
         .onAppear(perform: refresh)
@@ -461,12 +465,18 @@ private struct VoiceCard: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             HStack {
-                Text("Transcription model").font(.subheadline).bold()
+                Text("Dictation model").font(.subheadline).bold()
                 Spacer()
-                TextField(settings.provider == .openAICompatible ? "whisper-large-v3" : "whisper-1",
+                Menu("Presets") {
+                    ForEach(AIModels.transcriptionChoices, id: \.self) { model in
+                        Button(model) { settings.voiceModel = model }
+                    }
+                }
+                .frame(maxWidth: 92)
+                TextField(settings.provider == .openAICompatible ? "whisper-large-v3" : AIModels.whisperModel,
                           text: $settings.voiceModel)
                     .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: 220)
+                    .frame(maxWidth: 180)
             }
             HStack {
                 Text("Language").font(.subheadline).bold()
